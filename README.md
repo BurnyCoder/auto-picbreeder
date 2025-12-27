@@ -8,24 +8,19 @@ Picbreeder is based on an idea from Jimmy Secretan, originally proposed in a mee
 
 <img width="440" height="979" alt="image" src="https://github.com/user-attachments/assets/9f6d1a0b-69ee-4809-8d7a-d9d73f39665f" />
 
-Key features:
-- **Interactive Evolution**: Select images you like to guide the evolution process
-- **AI-Assisted Selection**: Optional LLM integration to automatically select the most visually interesting mutations
-- **Collaborative**: Build upon images evolved by other users
-- **Infinite Resolution**: Images are stored as mathematical objects, making them publication quality
-- **Complexification**: Through NEAT, images can become more complex over generations
-
 This project is a fork of [nbenko1.github.io](http://nbenko1.github.io/) with added features including LLM-automated mutation selection, evolution history tracking, and automatic image/genome saving.
 
 ## Features
 
-- **Homepage**: Landing page with featured evolved images
-- **Evolve**: Interactive evolution interface to create new images
+- **Interactive Evolution**: Select images you like to guide the evolution process through an intuitive interface
+- **AI-Assisted Selection**: Optional LLM integration to automatically select the most visually interesting mutations
+- **Complexification**: Through NEAT, images can become more complex over generations
+- **Infinite Resolution**: Images are stored as mathematical objects, making them publication quality
+- **Collaborative**: Build upon images evolved by other users
 - **Explore**: Browse and discover images evolved by the community
 - **Image View**: Detailed view of individual evolved images with ratings and tags
 - **History**: Auto-saved evolution history with session tracking, export/import to file, and the ability to reload previous genomes
-- **Auto-save Images**: Automatically saves mutated images as PNG + JSON (genome) files to disk via local server
-- **AI Auto-Select**: Use OpenAI's GPT-5-Nano to automatically select the most aesthetically interesting image after each mutation
+- **Auto-save**: Automatically saves mutated images as PNG + JSON (genome) files to disk via local server
 
 ## Tech Stack
 
