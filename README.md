@@ -1,10 +1,8 @@
-# Picbreeder
+# Auto Picbreeder
 
-Picbreeder but LLMs can play the role of humans. Picbreeder evolves images without any training data using Compositional Pattern Producing Networks (CPPNs) evolved by NEAT (NeuroEvolution of Augmenting Topologies).
+Auto Picbreeder is Picbreeder but LLMs can play the role of humans. Picbreeder evolves images without any training data using [Compositional Pattern Producing Networks (CPPNs)](https://en.wikipedia.org/wiki/Compositional_pattern-producing_network) evolved by [NEAT (NeuroEvolution of Augmenting Topologies)](https://en.wikipedia.org/wiki/Neuroevolution_of_augmenting_topologies).
 
-## About
-
-Picbreeder is based on an idea from Jimmy Secretan, originally proposed in a meeting of the [Evolutionary Complexity Research Group (EPlex)](https://en.wikipedia.org/wiki/Kenneth_Stanley) at the University of Central Florida in [Spring 2006](https://x.com/jsecretan/status/1865945596579975478). It allows users to evolve images using [Compositional Pattern Producing Networks (CPPNs)](https://en.wikipedia.org/wiki/Compositional_pattern-producing_network) evolved by [NEAT (NeuroEvolution of Augmenting Topologies)](https://en.wikipedia.org/wiki/Neuroevolution_of_augmenting_topologies).
+**CPPNs** are neural networks that take pixel coordinates as input and output colors, using diverse activation functions (sin, cos, gaussian, etc.) to create complex patterns at infinite resolution. **NEAT** is a genetic algorithm that evolves both the topology and weights of these networks, starting simple and growing more complex over generations.
 
 <img width="440" height="979" alt="image" src="https://github.com/user-attachments/assets/9f6d1a0b-69ee-4809-8d7a-d9d73f39665f" />
 
@@ -120,6 +118,8 @@ npm run build
 
 ## Credits
 
+Picbreeder is based on an idea from Jimmy Secretan, originally proposed in a meeting of the [Evolutionary Complexity Research Group (EPlex)](https://en.wikipedia.org/wiki/Kenneth_Stanley) at the University of Central Florida in [Spring 2006](https://x.com/jsecretan/status/1865945596579975478).
+
 ### [Original Picbreeder Team (2006)](https://dl.acm.org/doi/10.1145/1357054.1357328)
 - Jimmy Secretan (original concept)
 - Nick Beato
@@ -128,11 +128,6 @@ npm run build
 - Adelein Rodriguez
 - Jeremiah T. Folsom-Kovarik
 - [Dr. Kenneth Stanley](https://en.wikipedia.org/wiki/Kenneth_Stanley) (supervisor)
-
-## References
-
-- [NEAT (NeuroEvolution of Augmenting Topologies)](http://nn.cs.utexas.edu/downloads/papers/stanley.ec02.pdf)
-- [Compositional Pattern Producing Networks](https://link.springer.com/article/10.1007/s10710-007-9028-8)
 
 ## License
 
