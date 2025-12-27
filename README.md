@@ -2,11 +2,11 @@
 
 An interactive evolutionary art platform that uses neural networks (NEAT/CPPNs) to evolve images without any training data.
 
-<img width="440" height="979" alt="image" src="https://github.com/user-attachments/assets/9f6d1a0b-69ee-4809-8d7a-d9d73f39665f" />
-
 ## About
 
 Picbreeder is based on an idea from Jimmy Secretan, originally proposed in a meeting of the [Evolutionary Complexity Research Group (EPlex)](https://en.wikipedia.org/wiki/Kenneth_Stanley) at the University of Central Florida in [Spring 2006](https://x.com/jsecretan/status/1865945596579975478). It allows users to evolve images using [Compositional Pattern Producing Networks (CPPNs)](https://en.wikipedia.org/wiki/Compositional_pattern-producing_network) evolved by [NEAT (NeuroEvolution of Augmenting Topologies)](https://en.wikipedia.org/wiki/Neuroevolution_of_augmenting_topologies).
+
+<img width="440" height="979" alt="image" src="https://github.com/user-attachments/assets/9f6d1a0b-69ee-4809-8d7a-d9d73f39665f" />
 
 Key features:
 - **Interactive Evolution**: Select images you like to guide the evolution process
