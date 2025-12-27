@@ -15,13 +15,42 @@ Evolution Component for the Picbreeder site
 
 <template>
 <div>
-  <div class="container" id="mainScreen"> 
+  <div class="container" id="mainScreen">
     <div class="row">
-        <canvas id="imagePlane" width="10" height="10"></canvas> 
+        <canvas id="imagePlane" width="10" height="10"></canvas>
       <div>
         <a class="btn btn-info btn-md" id = "startover_button">restart</a>
         <a class="btn btn-success btn-md" id = "evolve_button">mutate</a>
-        <a class="btn btn-info btn-md" id = "save_png_button">save</a> 
+        <a class="btn btn-info btn-md" id = "save_png_button">save</a>
+      </div>
+      <!-- AI Selection Controls -->
+      <div class="ai-controls" id="aiControls">
+        <div class="ai-toggle-row">
+          <label class="ai-toggle">
+            <input type="checkbox" id="aiEnabledCheckbox" />
+            <span class="ai-toggle-label">AI Auto-Select (GPT-5-Nano)</span>
+          </label>
+          <button class="btn btn-sm btn-secondary" id="aiSettingsBtn" title="Configure API Key">⚙</button>
+        </div>
+        <div class="ai-status" id="aiStatus"></div>
+      </div>
+      <!-- AI Settings Modal -->
+      <div class="ai-modal" id="aiSettingsModal">
+        <div class="ai-modal-content">
+          <h4>OpenAI API Settings</h4>
+          <div class="ai-form-group">
+            <label for="apiKeyInput">API Key:</label>
+            <input type="password" id="apiKeyInput" placeholder="sk-..." />
+          </div>
+          <div class="ai-form-group">
+            <button class="btn btn-sm btn-info" id="testConnectionBtn">Test Connection</button>
+            <span id="connectionStatus"></span>
+          </div>
+          <div class="ai-modal-buttons">
+            <button class="btn btn-sm btn-success" id="saveApiKeyBtn">Save</button>
+            <button class="btn btn-sm btn-secondary" id="closeModalBtn">Close</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -46,6 +75,9 @@ import * as R from "../lib/recurrent";
 
 //History storage
 import historyStorage from "../services/historyStorage";
+
+//OpenAI service for AI-assisted selection
+import openaiService from "../services/openaiService";
 
 
 export default {
@@ -321,6 +353,11 @@ export default {
       initGenome();
       initThumb();
       drawAllThumb();
+
+      // If AI selection is enabled, automatically select the best image
+      if (openaiService.isAiEnabled() && openaiService.getApiKey()) {
+        performAiSelection();
+      }
     });
 
     //save_button does not actually save, it is not in original neurogram code
@@ -411,6 +448,11 @@ export default {
       // redraw selection boxes
       updateSelected();
 
+      // If AI selection is enabled, automatically select the best image
+      if (openaiService.isAiEnabled() && openaiService.getApiKey()) {
+        performAiSelection();
+      }
+
     });
     $("#zoom_selected_button").click(function(){
       console.log(lastSelected);
@@ -449,6 +491,130 @@ export default {
       document.getElementById("save_png_button").href = canvas2.toDataURL("image/png").replace(/^data:image\/[^;]/, 'data:application/octet-stream');
     });
 
+    // ============================================
+    // AI Selection Controls
+    // ============================================
+
+    // Initialize AI controls from stored settings
+    function initAiControls() {
+      var aiEnabled = openaiService.isAiEnabled();
+      var apiKey = openaiService.getApiKey();
+
+      document.getElementById('aiEnabledCheckbox').checked = aiEnabled;
+      document.getElementById('apiKeyInput').value = apiKey;
+
+      updateAiStatus();
+    }
+
+    function updateAiStatus() {
+      var statusEl = document.getElementById('aiStatus');
+      var aiEnabled = openaiService.isAiEnabled();
+      var apiKey = openaiService.getApiKey();
+      var isEnvKey = openaiService.isEnvApiKey();
+
+      if (!aiEnabled) {
+        statusEl.textContent = '';
+        statusEl.className = 'ai-status';
+      } else if (!apiKey) {
+        statusEl.textContent = 'API key required - click ⚙ to configure';
+        statusEl.className = 'ai-status ai-status-warning';
+      } else {
+        var keySource = isEnvKey ? ' (using .env)' : '';
+        statusEl.textContent = 'AI will auto-select after restart or mutate' + keySource;
+        statusEl.className = 'ai-status ai-status-active';
+      }
+    }
+
+    // AI Enable/Disable toggle
+    $("#aiEnabledCheckbox").change(function() {
+      openaiService.setAiEnabled(this.checked);
+      updateAiStatus();
+    });
+
+    // Settings modal controls
+    $("#aiSettingsBtn").click(function() {
+      document.getElementById('apiKeyInput').value = openaiService.getApiKey();
+      document.getElementById('connectionStatus').textContent = '';
+      $("#aiSettingsModal").show();
+    });
+
+    $("#closeModalBtn").click(function() {
+      $("#aiSettingsModal").hide();
+    });
+
+    $("#saveApiKeyBtn").click(function() {
+      var apiKey = document.getElementById('apiKeyInput').value.trim();
+      openaiService.setApiKey(apiKey);
+      updateAiStatus();
+      $("#aiSettingsModal").hide();
+    });
+
+    $("#testConnectionBtn").click(async function() {
+      var statusEl = document.getElementById('connectionStatus');
+      statusEl.textContent = 'Testing...';
+      statusEl.style.color = '#666';
+
+      // Temporarily set the key for testing
+      var testKey = document.getElementById('apiKeyInput').value.trim();
+      var originalKey = openaiService.getApiKey();
+      openaiService.setApiKey(testKey);
+
+      var result = await openaiService.testConnection();
+
+      // Restore original key if not saving yet
+      openaiService.setApiKey(originalKey);
+
+      if (result.success) {
+        statusEl.textContent = '✓ Connected!';
+        statusEl.style.color = 'green';
+      } else {
+        statusEl.textContent = '✗ ' + result.error;
+        statusEl.style.color = 'red';
+      }
+    });
+
+    // AI-assisted mutation function
+    async function performAiSelection() {
+      var statusEl = document.getElementById('aiStatus');
+      statusEl.textContent = 'AI is analyzing images...';
+      statusEl.className = 'ai-status ai-status-working';
+
+      try {
+        // Collect all image data URLs
+        var images = [];
+        for (var i = 0; i < nRow; i++) {
+          for (var j = 0; j < nCol; j++) {
+            var idx = i * nCol + j;
+            var dataUrl = createThumbnailDataURL(genome[i][j], thumbSize);
+            images.push({ index: idx, dataUrl: dataUrl });
+          }
+        }
+
+        // Call OpenAI to select the best image
+        var selectedIndex = await openaiService.selectBestImage(images);
+
+        // Auto-select the AI-chosen image
+        selectionList = [selectedIndex];
+        currSelected = selectedIndex;
+        lastSelected = selectedIndex;
+        updateSelected();
+
+        // Show the selected image in the large view
+        initSecondScreen(selectedIndex);
+        $("#secondScreen").show();
+
+        statusEl.textContent = 'AI selected image #' + (selectedIndex + 1);
+        statusEl.className = 'ai-status ai-status-active';
+
+      } catch (error) {
+        console.error('AI selection error:', error);
+        statusEl.textContent = 'AI error: ' + error.message;
+        statusEl.className = 'ai-status ai-status-error';
+      }
+    }
+
+    // Hide modal initially
+    $("#aiSettingsModal").hide();
 
     function main() {
       // start of the program
@@ -490,6 +656,9 @@ export default {
           selectionList = [12];
           updateSelected();
 
+          // Initialize AI controls
+          initAiControls();
+
           return;
         } catch (e) {
           console.error('Error loading genome:', e);
@@ -503,6 +672,8 @@ export default {
       drawAllThumb();
       $("#mainScreen").show();
 
+      // Initialize AI controls
+      initAiControls();
     }
     /* eslint-enable no-unused-vars */
     
@@ -684,6 +855,115 @@ svg {
 
 #imagePlane {
   cursor: pointer;
+}
+
+/* AI Controls Styles */
+.ai-controls {
+  margin-top: 15px;
+  padding: 10px;
+  background: #f8f9fa;
+  border-radius: 5px;
+  max-width: 450px;
+}
+
+.ai-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.ai-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  margin: 0;
+}
+
+.ai-toggle-label {
+  font-size: 0.9em;
+  color: #333;
+}
+
+.ai-status {
+  margin-top: 8px;
+  font-size: 0.85em;
+  min-height: 1.2em;
+}
+
+.ai-status-active {
+  color: #28a745;
+}
+
+.ai-status-warning {
+  color: #ffc107;
+}
+
+.ai-status-error {
+  color: #dc3545;
+}
+
+.ai-status-working {
+  color: #007bff;
+}
+
+/* AI Settings Modal */
+.ai-modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.5);
+  z-index: 1000;
+  justify-content: center;
+  align-items: center;
+}
+
+.ai-modal-content {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  max-width: 400px;
+  width: 90%;
+  margin: 100px auto;
+}
+
+.ai-modal-content h4 {
+  margin-top: 0;
+  margin-bottom: 15px;
+}
+
+.ai-form-group {
+  margin-bottom: 15px;
+}
+
+.ai-form-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 500;
+}
+
+.ai-form-group input[type="password"] {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.ai-modal-buttons {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 20px;
+}
+
+#connectionStatus {
+  margin-left: 10px;
+  font-size: 0.9em;
 }
 
 .node {

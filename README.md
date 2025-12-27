@@ -8,6 +8,7 @@ Picbreeder is based on an idea from Jimmy Secretan, originally proposed in a mee
 
 Key features:
 - **Interactive Evolution**: Select images you like to guide the evolution process
+- **AI-Assisted Selection**: Optional GPT-5-Nano integration to automatically select the most visually interesting mutations
 - **Collaborative**: Build upon images evolved by other users
 - **Infinite Resolution**: Images are stored as mathematical objects, making them publication quality
 - **Complexification**: Through NEAT, images can become more complex over generations
@@ -20,6 +21,7 @@ Key features:
 - **Image View**: Detailed view of individual evolved images with ratings and tags
 - **History**: Auto-saved evolution history with session tracking, export/import to file, and the ability to reload previous genomes
 - **Auto-save Images**: Automatically saves mutated images as PNG + JSON (genome) files to disk via local server
+- **AI Auto-Select**: Use OpenAI's GPT-5-Nano to automatically select the most aesthetically interesting image after each mutation
 
 ## Tech Stack
 
@@ -29,6 +31,7 @@ Key features:
 - Hooper (carousel component)
 - NEAT.js (neural network evolution)
 - Express (dev server for image auto-save)
+- OpenAI API (optional, for AI-assisted selection)
 
 ## Development
 
@@ -42,6 +45,16 @@ Key features:
 ```bash
 npm install
 ```
+
+### Configure AI Selection (Optional)
+
+To enable AI-assisted image selection using GPT-5-Nano, add your OpenAI API key to `.env`:
+
+```bash
+VUE_APP_OPENAI_API_KEY=sk-your-api-key-here
+```
+
+Alternatively, you can enter the API key directly in the UI via the settings button on the Evolve page.
 
 ### Run Development Server
 
@@ -90,7 +103,8 @@ npm run build
 │   ├── router/              # Vue Router config
 │   │   └── index.js
 │   ├── services/            # Application services
-│   │   └── historyStorage.js  # LocalStorage history management
+│   │   ├── historyStorage.js  # LocalStorage history management
+│   │   └── openaiService.js   # OpenAI API integration for AI selection
 │   ├── views/               # Page components
 │   │   ├── About.vue
 │   │   ├── Evolve.vue
