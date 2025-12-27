@@ -1,0 +1,4 @@
+var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _vm._m(0)}
+var staticRenderFns = [function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{staticClass:"exploreFilter"},[_c('pre',[_vm._v("    The explore page allows you to view images that have already been evolved. \n    Once it is fully implemented, it will allow you to filter images by tag, creator, date created, and more! \n    You can click on an image to view its details.\n    ")])])}]
+
+export { render, staticRenderFns }
