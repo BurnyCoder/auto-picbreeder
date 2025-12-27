@@ -4,7 +4,7 @@ An interactive evolutionary art platform that uses neural networks (NEAT/CPPNs) 
 
 ## About
 
-Picbreeder is based on an idea from Jimmy Secretan, originally proposed in a meeting of the Evolutionary Complexity Research Group (EPlex) at the University of Central Florida in Spring 2006. It allows users to evolve images using Compositional Pattern Producing Networks (CPPNs) evolved by NEAT (NeuroEvolution of Augmenting Topologies).
+Picbreeder is based on an idea from Jimmy Secretan, originally proposed in a meeting of the [Evolutionary Complexity Research Group (EPlex)](https://en.wikipedia.org/wiki/Kenneth_Stanley) at the University of Central Florida in [Spring 2006](https://x.com/jsecretan/status/1865945596579975478). It allows users to evolve images using [Compositional Pattern Producing Networks (CPPNs)](https://en.wikipedia.org/wiki/Compositional_pattern-producing_network) evolved by [NEAT (NeuroEvolution of Augmenting Topologies)](https://en.wikipedia.org/wiki/Neuroevolution_of_augmenting_topologies).
 
 Key features:
 - **Interactive Evolution**: Select images you like to guide the evolution process
@@ -89,28 +89,20 @@ picbreeder-dev/
 
 ## Credits
 
-### Original Picbreeder Team (2006)
+### [Original Picbreeder Team (2006)](https://dl.acm.org/doi/10.1145/1357054.1357328)
 - Jimmy Secretan (original concept)
 - Nick Beato
 - David D'Ambrosio
 - Adam Campbell
 - Adelein Rodriguez
-- Dr. Kenneth Stanley (supervisor)
-
-### 2020 Rewrite - Southwestern University CS Capstone
-- Nicholai Benko
-- Bennet Leff
-- Cameron Henkel
-- Sarah Friday
-- Jaden Williams
-- Anna Krolikowski
+- Jeremiah T. Folsom-Kovarik
+- [Dr. Kenneth Stanley](https://en.wikipedia.org/wiki/Kenneth_Stanley) (supervisor)
 
 ## References
 
 - [NEAT (NeuroEvolution of Augmenting Topologies)](http://nn.cs.utexas.edu/downloads/papers/stanley.ec02.pdf)
-- [Compositional Pattern Producing Networks](http://eplex.cs.ucf.edu/papers/stanley_gpem07.pdf)
-- [Original Picbreeder](http://picbreeder.org/)
+- [Compositional Pattern Producing Networks](https://link.springer.com/article/10.1007/s10710-007-9028-8)
 
 ## License
 
-This project is part of an academic capstone project at Southwestern University.
+MIT
