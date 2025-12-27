@@ -14,10 +14,10 @@ export const historyStorage = {
       const parsed = JSON.parse(data);
       if (!Array.isArray(parsed)) return [];
 
-      // Filter to only valid session objects (have images array)
-      // This handles migration from old format
+      // Filter to only valid session objects (have images array with content)
+      // This handles migration from old format and removes empty sessions
       const validSessions = parsed.filter(item =>
-        item && item.id && item.timestamp && Array.isArray(item.images)
+        item && item.id && item.timestamp && Array.isArray(item.images) && item.images.length > 0
       );
 
       // If we filtered out invalid data, save the cleaned version
@@ -43,20 +43,14 @@ export const historyStorage = {
     return session.images.find(img => img.id === imageId) || null;
   },
 
-  saveSession(images) {
-    // images is an array of { genome: genomeJSON, thumbnail: dataURL }
-    if (!images || images.length === 0) return null;
-
+  createSession() {
+    // Create a new empty session and return its ID
     const sessions = this.getAll();
 
     const newSession = {
       id: this.generateId(),
       timestamp: Date.now(),
-      images: images.map(img => ({
-        id: this.generateId(),
-        thumbnail: img.thumbnail,
-        genome: img.genome
-      }))
+      images: []
     };
 
     sessions.unshift(newSession);
@@ -69,12 +63,57 @@ export const historyStorage = {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
       return newSession.id;
     } catch (e) {
+      console.error('Error creating session:', e);
+      return null;
+    }
+  },
+
+  addToSession(sessionId, images) {
+    // Add images to an existing session
+    // images is an array of { genome: genomeJSON, thumbnail: dataURL }
+    if (!images || images.length === 0) return false;
+
+    const sessions = this.getAll();
+    const session = sessions.find(s => s.id === sessionId);
+
+    if (!session) {
+      // Session doesn't exist, create new one with these images
+      const newSession = {
+        id: sessionId || this.generateId(),
+        timestamp: Date.now(),
+        images: images.map(img => ({
+          id: this.generateId(),
+          thumbnail: img.thumbnail,
+          genome: img.genome
+        }))
+      };
+      sessions.unshift(newSession);
+    } else {
+      // Add images to existing session
+      const newImages = images.map(img => ({
+        id: this.generateId(),
+        thumbnail: img.thumbnail,
+        genome: img.genome
+      }));
+      session.images.push(...newImages);
+      // Update timestamp to latest mutation time
+      session.timestamp = Date.now();
+    }
+
+    while (sessions.length > MAX_SESSIONS) {
+      sessions.pop();
+    }
+
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
+      return true;
+    } catch (e) {
       console.error('Error saving to history:', e);
       if (e.name === 'QuotaExceededError') {
         sessions.splice(Math.floor(sessions.length / 2));
         localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
       }
-      return null;
+      return false;
     }
   },
 

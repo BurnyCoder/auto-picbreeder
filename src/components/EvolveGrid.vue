@@ -103,6 +103,9 @@ export default {
     var lastSelected = -1;
     var selectionList = [];
 
+    // History session for this page visit
+    var currentSessionId = historyStorage.generateId();
+
     // second plane
     var chosenGenome;
     var bigimg;
@@ -349,7 +352,7 @@ export default {
       var len = selectionList.length;
       if (len === 0) return;
 
-      // AUTO-SAVE: Save all selected parent genomes as a session before mutation
+      // AUTO-SAVE: Add selected parent genomes to current session
       var sessionImages = [];
       for (var s = 0; s < len; s++) {
         var selectedIdx = selectionList[s];
@@ -360,7 +363,7 @@ export default {
         var thumbnailURL = createThumbnailDataURL(genomeCopy, thumbSize);
         sessionImages.push({ genome: genomeJSON, thumbnail: thumbnailURL });
       }
-      historyStorage.saveSession(sessionImages);
+      historyStorage.addToSession(currentSessionId, sessionImages);
 
       var mom, dad;
       var momGene, dadGene;
