@@ -1,6 +1,6 @@
 # Picbreeder
 
-An interactive evolutionary art platform that uses neural networks (NEAT/CPPNs) to evolve images without any training data.
+Picbreeder but LLMs can play the role of humans. Picbreeder evolves images without any training data using Compositional Pattern Producing Networks (CPPNs) evolved by NEAT (NeuroEvolution of Augmenting Topologies).
 
 ## About
 
