@@ -10,7 +10,7 @@ Picbreeder is based on an idea from Jimmy Secretan, originally proposed in a mee
 
 Key features:
 - **Interactive Evolution**: Select images you like to guide the evolution process
-- **AI-Assisted Selection**: Optional GPT-5-Nano integration to automatically select the most visually interesting mutations
+- **AI-Assisted Selection**: Optional LLM integration to automatically select the most visually interesting mutations
 - **Collaborative**: Build upon images evolved by other users
 - **Infinite Resolution**: Images are stored as mathematical objects, making them publication quality
 - **Complexification**: Through NEAT, images can become more complex over generations
@@ -52,7 +52,7 @@ npm install
 
 ### Configure AI Selection (Optional)
 
-To enable AI-assisted image selection using GPT-5-Nano, add your OpenAI API key to `.env`:
+To enable AI-assisted image selection using LLMs, add your OpenAI API key to `.env`:
 
 ```bash
 VUE_APP_OPENAI_API_KEY=sk-your-api-key-here
