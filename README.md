@@ -4,8 +4,6 @@ An interactive evolutionary art platform that uses neural networks (NEAT/CPPNs) 
 
 ## About
 
-This project is a fork of [nbenko1.github.io](http://nbenko1.github.io/) with added features including LLM-automated mutation selection, evolution history tracking, and automatic image/genome saving.
-
 Picbreeder is based on an idea from Jimmy Secretan, originally proposed in a meeting of the [Evolutionary Complexity Research Group (EPlex)](https://en.wikipedia.org/wiki/Kenneth_Stanley) at the University of Central Florida in [Spring 2006](https://x.com/jsecretan/status/1865945596579975478). It allows users to evolve images using [Compositional Pattern Producing Networks (CPPNs)](https://en.wikipedia.org/wiki/Compositional_pattern-producing_network) evolved by [NEAT (NeuroEvolution of Augmenting Topologies)](https://en.wikipedia.org/wiki/Neuroevolution_of_augmenting_topologies).
 
 Key features:
@@ -14,6 +12,8 @@ Key features:
 - **Collaborative**: Build upon images evolved by other users
 - **Infinite Resolution**: Images are stored as mathematical objects, making them publication quality
 - **Complexification**: Through NEAT, images can become more complex over generations
+
+This project is a fork of [nbenko1.github.io](http://nbenko1.github.io/) with added features including LLM-automated mutation selection, evolution history tracking, and automatic image/genome saving.
 
 ## Features
 
