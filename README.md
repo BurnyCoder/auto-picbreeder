@@ -37,7 +37,6 @@ Key features:
 ### Setup
 
 ```bash
-cd picbreeder-dev
 npm install
 ```
 
@@ -58,7 +57,6 @@ npm run build
 ## Project Structure
 
 ```
-picbreeder-dev/
 ├── public/
 │   └── index.html
 ├── src/
