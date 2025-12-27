@@ -28,6 +28,11 @@ export const REASONING_EFFORTS = [
 const DEFAULT_MODEL = 'gpt-5-nano';
 const DEFAULT_REASONING_EFFORT = 'medium';
 
+// Session memory - stores previous selections for LLM context
+// Simple in-memory array that persists during the browser session
+let sessionMemory = [];
+const MAX_MEMORY_ENTRIES = 100; // Keep last N selections to avoid token bloat
+
 // Local storage keys
 const API_KEY_STORAGE_KEY = 'picbreeder_openai_api_key';
 const AI_ENABLED_STORAGE_KEY = 'picbreeder_ai_enabled';
@@ -127,6 +132,43 @@ export function setAutoContinue(enabled) {
 }
 
 /**
+ * Clear the session memory (call when starting a new evolution session)
+ */
+export function clearMemory() {
+  sessionMemory = [];
+}
+
+/**
+ * Get the current session memory
+ */
+export function getMemory() {
+  return [...sessionMemory];
+}
+
+/**
+ * Get the number of selections in memory
+ */
+export function getMemoryCount() {
+  return sessionMemory.length;
+}
+
+/**
+ * Add a selection to memory (called internally after each selection)
+ */
+function addToMemory(iteration, reasoning) {
+  sessionMemory.push({
+    iteration,
+    reasoning,
+    timestamp: Date.now()
+  });
+
+  // Keep only the last N entries
+  if (sessionMemory.length > MAX_MEMORY_ENTRIES) {
+    sessionMemory = sessionMemory.slice(-MAX_MEMORY_ENTRIES);
+  }
+}
+
+/**
  * Select the best image from an array of image data URLs using GPT-5 models
  * @param {Array<{index: number, dataUrl: string}>} images - Array of images with index and data URL
  * @param {string} criteria - Optional criteria for selection (default: aesthetic appeal)
@@ -138,7 +180,7 @@ export async function selectBestImage(images, criteria = null) {
   const reasoningEffort = getReasoningEffort();
 
   if (!apiKey) {
-    throw new Error('OpenAI API key not configured');
+    throw new Error('OpenAI API key not configured. Click ⚙ Settings to enter your API key, or set VUE_APP_OPENAI_API_KEY in .env and restart the dev server.');
   }
 
   if (!images || images.length === 0) {
@@ -146,10 +188,13 @@ export async function selectBestImage(images, criteria = null) {
   }
 
   // Build the content array with text prompt and all images
+  const promptText = buildPrompt(images.length, criteria);
+  console.log('=== LLM PROMPT ===\n' + promptText + '\n==================');
+
   const content = [
     {
       type: 'text',
-      text: buildPrompt(images.length, criteria)
+      text: promptText
     }
   ];
 
@@ -173,7 +218,7 @@ export async function selectBestImage(images, criteria = null) {
         content: content
       }
     ],
-    max_completion_tokens: 1500,
+    max_completion_tokens: 128000,  // Max for GPT-5 reasoning models
     response_format: { type: 'json_object' }
   };
 
@@ -200,14 +245,65 @@ export async function selectBestImage(images, criteria = null) {
     const data = await response.json();
     const responseText = data.choices?.[0]?.message?.content || '';
 
+    // Debug: log API response details
+    console.log('=== API RESPONSE ===');
+    console.log('Model:', data.model);
+    console.log('Finish reason:', data.choices?.[0]?.finish_reason);
+    console.log('Response content:', responseText || '(empty)');
+    console.log('Usage:', JSON.stringify(data.usage, null, 2));
+    console.log('====================');
+
     // Parse the JSON response to extract selection and reasoning
     const result = parseSelectionResponse(responseText, images.length);
+
+    // Save to session memory for context in future selections
+    const iteration = sessionMemory.length + 1;
+    addToMemory(iteration, result.reasoning);
 
     return result;
   } catch (error) {
     console.error('OpenAI API error:', error);
+    console.error('Error details:', {
+      message: error.message,
+      name: error.name,
+      stack: error.stack
+    });
+
+    // Provide more helpful error message for common issues
+    if (error.message === 'Failed to fetch') {
+      const helpfulError = new Error(
+        'Failed to fetch - possible causes:\n' +
+        '1. No internet connection\n' +
+        '2. CORS blocked (check browser console)\n' +
+        '3. API key not configured (check Settings)\n' +
+        '4. Browser extension blocking request\n' +
+        '5. Network/firewall issue'
+      );
+      helpfulError.name = 'NetworkError';
+      throw helpfulError;
+    }
+
     throw error;
   }
+}
+
+/**
+ * Build the memory context string from session history
+ */
+function buildMemoryContext() {
+  if (sessionMemory.length === 0) {
+    return '';
+  }
+
+  const recentSelections = sessionMemory
+    .slice(-5) // Only include last 5 for brevity
+    .map((entry, idx) => `  ${idx + 1}. "${entry.reasoning}"`)
+    .join('\n');
+
+  return `\n\nYour previous selections in this session (most recent last):
+${recentSelections}
+
+Use this context to maintain consistency and build upon previous choices.`;
 }
 
 /**
@@ -216,6 +312,7 @@ export async function selectBestImage(images, criteria = null) {
 function buildPrompt(imageCount, criteria) {
   const defaultCriteria = 'most visually interesting, aesthetically pleasing, and artistically compelling';
   const selectionCriteria = criteria || defaultCriteria;
+  const memoryContext = buildMemoryContext();
 
   return `You are an art curator helping select evolved digital art. You will see ${imageCount} abstract images numbered 1 to ${imageCount}.
 
@@ -225,7 +322,7 @@ Consider:
 - Visual complexity and interesting patterns
 - Color harmony and contrast
 - Unique or unusual features
-- Overall aesthetic appeal
+- Overall aesthetic appeal${memoryContext}
 
 Respond with JSON only in this exact format:
 {"image": <number 1-${imageCount}>, "reasoning": "<brief explanation>"}`;
@@ -323,5 +420,9 @@ export default {
   isAutoContinue,
   setAutoContinue,
   selectBestImage,
-  testConnection
+  testConnection,
+  // Memory management
+  clearMemory,
+  getMemory,
+  getMemoryCount
 };

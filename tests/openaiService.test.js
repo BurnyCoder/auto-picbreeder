@@ -150,6 +150,128 @@ test('handles response with special characters in reasoning', () => {
   assertEqual(result.reasoning.includes('interesting'), true);
 });
 
+// === Memory Management Tests ===
+
+// Mock memory functions (simulating the module)
+let sessionMemory = [];
+const MAX_MEMORY_ENTRIES = 100;
+
+function clearMemory() {
+  sessionMemory = [];
+}
+
+function getMemory() {
+  return [...sessionMemory];
+}
+
+function getMemoryCount() {
+  return sessionMemory.length;
+}
+
+function addToMemory(iteration, reasoning) {
+  sessionMemory.push({
+    iteration,
+    reasoning,
+    timestamp: Date.now()
+  });
+
+  if (sessionMemory.length > MAX_MEMORY_ENTRIES) {
+    sessionMemory = sessionMemory.slice(-MAX_MEMORY_ENTRIES);
+  }
+}
+
+function buildMemoryContext() {
+  if (sessionMemory.length === 0) {
+    return '';
+  }
+
+  const recentSelections = sessionMemory
+    .slice(-5)
+    .map((entry, idx) => `  ${idx + 1}. "${entry.reasoning}"`)
+    .join('\n');
+
+  return `\n\nYour previous selections in this session (most recent last):
+${recentSelections}
+
+Use this context to maintain consistency and build upon previous choices.`;
+}
+
+console.log('\n=== Memory Management Tests ===\n');
+
+// Reset memory before tests
+clearMemory();
+
+test('clearMemory resets session memory', () => {
+  addToMemory(1, 'test reasoning');
+  assertEqual(getMemoryCount(), 1);
+  clearMemory();
+  assertEqual(getMemoryCount(), 0);
+  assertEqual(getMemory(), []);
+});
+
+test('addToMemory stores selection', () => {
+  clearMemory();
+  addToMemory(1, 'vibrant colors');
+  assertEqual(getMemoryCount(), 1);
+  const memory = getMemory();
+  assertEqual(memory[0].iteration, 1);
+  assertEqual(memory[0].reasoning, 'vibrant colors');
+});
+
+test('getMemory returns copy, not reference', () => {
+  clearMemory();
+  addToMemory(1, 'test');
+  const memory = getMemory();
+  memory.push({ iteration: 99, reasoning: 'fake' });
+  assertEqual(getMemoryCount(), 1); // Original unchanged
+});
+
+test('addToMemory stores multiple selections', () => {
+  clearMemory();
+  addToMemory(1, 'first selection');
+  addToMemory(2, 'second selection');
+  addToMemory(3, 'third selection');
+  assertEqual(getMemoryCount(), 3);
+});
+
+test('buildMemoryContext returns empty string when no memory', () => {
+  clearMemory();
+  assertEqual(buildMemoryContext(), '');
+});
+
+test('buildMemoryContext includes recent selections', () => {
+  clearMemory();
+  addToMemory(1, 'vibrant spirals');
+  addToMemory(2, 'complex patterns');
+  const context = buildMemoryContext();
+  assertEqual(context.includes('vibrant spirals'), true);
+  assertEqual(context.includes('complex patterns'), true);
+  assertEqual(context.includes('previous selections'), true);
+});
+
+test('buildMemoryContext only includes last 5 entries', () => {
+  clearMemory();
+  for (let i = 1; i <= 7; i++) {
+    addToMemory(i, `selection ${i}`);
+  }
+  const context = buildMemoryContext();
+  assertEqual(context.includes('selection 1'), false);
+  assertEqual(context.includes('selection 2'), false);
+  assertEqual(context.includes('selection 3'), true);
+  assertEqual(context.includes('selection 7'), true);
+});
+
+test('memory respects MAX_MEMORY_ENTRIES limit', () => {
+  clearMemory();
+  for (let i = 1; i <= 105; i++) {
+    addToMemory(i, `selection ${i}`);
+  }
+  assertEqual(getMemoryCount(), 100);
+  const memory = getMemory();
+  assertEqual(memory[0].iteration, 6); // First 5 should be trimmed
+  assertEqual(memory[99].iteration, 105);
+});
+
 // Summary
 console.log('\n=== Test Summary ===');
 console.log(`Passed: ${passed}`);

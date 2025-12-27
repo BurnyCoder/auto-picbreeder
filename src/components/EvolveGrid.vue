@@ -367,6 +367,7 @@ export default {
     $("#startover_button").click(function(){
       console.log('starting over...');
       autoContinueCount = 0; // Reset iteration count on restart
+      openaiService.clearMemory(); // Clear LLM memory for fresh session
       initAll();
       initGenome();
       initThumb();

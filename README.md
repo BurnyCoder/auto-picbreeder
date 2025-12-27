@@ -56,7 +56,7 @@ Alternatively, you can enter the API key directly in the UI via the settings but
 ### Run Development Server
 
 ```bash
-npm run dev
+npm run serve
 ```
 
 This runs both the Vue app (http://localhost:8080/) and the image save server (port 3001). Each mutation automatically saves PNG images and genome JSON files to `images/<session-id>/` subfolders.
