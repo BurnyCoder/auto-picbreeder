@@ -1,4 +1,0 @@
-var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _vm._m(0)}
-var staticRenderFns = [function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',[_c('div',{staticClass:"container",attrs:{"id":"mainScreen"}},[_c('div',{staticClass:"row"},[_c('canvas',{attrs:{"id":"imagePlane","width":"10","height":"10"}}),_c('div',[_c('a',{staticClass:"btn btn-info btn-md",attrs:{"id":"startover_button"}},[_vm._v("restart")]),_c('a',{staticClass:"btn btn-success btn-md",attrs:{"id":"evolve_button"}},[_vm._v("mutate")]),_c('a',{staticClass:"btn btn-info btn-md",attrs:{"id":"save_png_button"}},[_vm._v("save")])])])]),_c('div',{staticClass:"container-fluid",attrs:{"id":"secondScreen"}},[_c('canvas',{attrs:{"id":"selectedPlane","width":"10","height":"10"}})])])}]
-
-export { render, staticRenderFns }

@@ -1,4 +1,0 @@
-var render = function () {var _vm=this;var _h=_vm.$createElement;var _c=_vm._self._c||_h;return _c('div',{attrs:{"id":"megaLinkContainer"}},[_c('router-link',{staticClass:"megaLink",attrs:{"to":"/evolve","tag":"div","id":"newuser"}},[_vm._v(" New User "),_c('div',{staticClass:"overlay"},[_c('div',{staticClass:"overlaytext"},[_vm._v("Start Evolving")])])]),_c('router-link',{staticClass:"megaLink",attrs:{"to":"/evolve","tag":"div","id":"returninguser"}},[_vm._v(" Returning User "),_c('div',{staticClass:"overlay"},[_c('div',{staticClass:"overlaytext"},[_vm._v("Start Evolving")])])])],1)}
-var staticRenderFns = []
-
-export { render, staticRenderFns }
