@@ -33,6 +33,7 @@ const API_KEY_STORAGE_KEY = 'picbreeder_openai_api_key';
 const AI_ENABLED_STORAGE_KEY = 'picbreeder_ai_enabled';
 const MODEL_STORAGE_KEY = 'picbreeder_ai_model';
 const REASONING_EFFORT_STORAGE_KEY = 'picbreeder_reasoning_effort';
+const AUTO_CONTINUE_STORAGE_KEY = 'picbreeder_auto_continue';
 
 /**
  * Get the OpenAI API key
@@ -109,6 +110,20 @@ export function getReasoningEffort() {
  */
 export function setReasoningEffort(effort) {
   localStorage.setItem(REASONING_EFFORT_STORAGE_KEY, effort);
+}
+
+/**
+ * Check if auto-continue is enabled
+ */
+export function isAutoContinue() {
+  return localStorage.getItem(AUTO_CONTINUE_STORAGE_KEY) === 'true';
+}
+
+/**
+ * Enable or disable auto-continue
+ */
+export function setAutoContinue(enabled) {
+  localStorage.setItem(AUTO_CONTINUE_STORAGE_KEY, enabled ? 'true' : 'false');
 }
 
 /**
@@ -305,6 +320,8 @@ export default {
   setModel,
   getReasoningEffort,
   setReasoningEffort,
+  isAutoContinue,
+  setAutoContinue,
   selectBestImage,
   testConnection
 };

@@ -30,6 +30,10 @@ Evolution Component for the Picbreeder site
             <input type="checkbox" id="aiEnabledCheckbox" />
             <span class="ai-toggle-label">AI Auto-Select</span>
           </label>
+          <label class="ai-toggle" id="autoContinueLabel" style="display: none;">
+            <input type="checkbox" id="autoContinueCheckbox" />
+            <span class="ai-toggle-label">Auto-Continue</span>
+          </label>
           <button class="btn btn-sm btn-secondary" id="aiSettingsBtn" title="Configure AI Settings">⚙</button>
         </div>
         <div class="ai-model-info" id="aiModelInfo"></div>
@@ -147,6 +151,9 @@ export default {
 
     // History session for this page visit
     var currentSessionId = historyStorage.generateId();
+
+    // Track auto-continue iteration count
+    var autoContinueCount = 0;
 
     // second plane
     var chosenGenome;
@@ -359,6 +366,7 @@ export default {
 
     $("#startover_button").click(function(){
       console.log('starting over...');
+      autoContinueCount = 0; // Reset iteration count on restart
       initAll();
       initGenome();
       initThumb();
@@ -511,9 +519,14 @@ export default {
       var apiKey = openaiService.getApiKey();
       var currentModel = openaiService.getModel();
       var currentEffort = openaiService.getReasoningEffort();
+      var autoContinue = openaiService.isAutoContinue();
 
       document.getElementById('aiEnabledCheckbox').checked = aiEnabled;
+      document.getElementById('autoContinueCheckbox').checked = autoContinue;
       document.getElementById('apiKeyInput').value = apiKey;
+
+      // Show/hide auto-continue checkbox based on AI enabled state
+      document.getElementById('autoContinueLabel').style.display = aiEnabled ? 'flex' : 'none';
 
       // Populate model dropdown
       var modelSelect = document.getElementById('modelSelect');
@@ -578,7 +591,13 @@ export default {
     // AI Enable/Disable toggle
     $("#aiEnabledCheckbox").change(function() {
       openaiService.setAiEnabled(this.checked);
+      document.getElementById('autoContinueLabel').style.display = this.checked ? 'flex' : 'none';
       updateAiStatus();
+    });
+
+    // Auto-continue toggle
+    $("#autoContinueCheckbox").change(function() {
+      openaiService.setAutoContinue(this.checked);
     });
 
     // Settings modal controls
@@ -664,17 +683,36 @@ export default {
         initSecondScreen(selectedIndex);
         $("#secondScreen").show();
 
-        statusEl.textContent = 'AI selected image #' + (selectedIndex + 1);
+        // Update status with iteration count if auto-continuing
+        if (openaiService.isAutoContinue()) {
+          autoContinueCount++;
+          statusEl.textContent = 'AI selected image #' + (selectedIndex + 1) + ' (iteration ' + autoContinueCount + ')';
+        } else {
+          statusEl.textContent = 'AI selected image #' + (selectedIndex + 1);
+        }
         statusEl.className = 'ai-status ai-status-active';
 
         // Show reasoning
         reasoningEl.textContent = reasoning;
         reasoningEl.style.display = 'block';
 
+        // If auto-continue is enabled, trigger mutation after a short delay
+        if (openaiService.isAutoContinue() && openaiService.isAiEnabled()) {
+          statusEl.textContent += ' - continuing in 1s...';
+          setTimeout(function() {
+            // Double-check auto-continue is still enabled before triggering
+            if (openaiService.isAutoContinue() && openaiService.isAiEnabled()) {
+              $("#evolve_button").click();
+            }
+          }, 1000);
+        }
+
       } catch (error) {
         console.error('AI selection error:', error);
         statusEl.textContent = 'AI error: ' + error.message;
         statusEl.className = 'ai-status ai-status-error';
+        // Reset auto-continue count on error
+        autoContinueCount = 0;
       }
     }
 
