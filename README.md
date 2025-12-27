@@ -1,6 +1,8 @@
 # Picbreeder
 
-An interactive evolutionary art platform that uses neural networks (NEAT/CPPNs) to evolve images collaboratively.
+An interactive evolutionary art platform that uses neural networks (NEAT/CPPNs) to evolve images without any training data.
+
+<img width="440" height="979" alt="image" src="https://github.com/user-attachments/assets/9f6d1a0b-69ee-4809-8d7a-d9d73f39665f" />
 
 ## About
 
