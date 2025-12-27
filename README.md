@@ -19,7 +19,7 @@ Key features:
 - **Explore**: Browse and discover images evolved by the community
 - **Image View**: Detailed view of individual evolved images with ratings and tags
 - **History**: Auto-saved evolution history with session tracking, export/import to file, and the ability to reload previous genomes
-- **Auto-save Images**: Automatically saves mutated images as PNG files to disk (via local server or browser File System API)
+- **Auto-save Images**: Automatically saves mutated images as PNG + JSON (genome) files to disk via local server
 
 ## Tech Stack
 
@@ -49,7 +49,7 @@ npm install
 npm run dev
 ```
 
-This runs both the Vue app (http://localhost:8080/) and the image save server (port 3001). Images are automatically saved to `images/` folder in session subfolders.
+This runs both the Vue app (http://localhost:8080/) and the image save server (port 3001). Each mutation automatically saves PNG images and genome JSON files to `images/<session-id>/` subfolders.
 
 Or run them separately:
 ```bash
@@ -68,7 +68,7 @@ npm run build
 ```
 ├── public/
 │   └── index.html
-├── images/                # Auto-saved PNG images (session subfolders)
+├── images/                # Auto-saved PNG + JSON files (session subfolders)
 ├── server.js              # Express server for auto-saving images
 ├── src/
 │   ├── assets/              # Images, CSS, SVGs
