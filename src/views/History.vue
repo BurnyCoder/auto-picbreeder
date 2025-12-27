@@ -13,8 +13,15 @@ Extended with History feature
         {{ stats.sessionCount }} mutation sessions, {{ stats.imageCount }} total images ({{ stats.sizeKB }}KB used)
       </p>
 
-      <div class="history-controls" v-if="sessions.length > 0">
-        <button class="btn btn-danger btn-sm" @click="confirmClearAll">
+      <div class="history-controls">
+        <button class="btn btn-primary btn-sm" @click="exportToFile">
+          Export to File
+        </button>
+        <label class="btn btn-secondary btn-sm import-btn">
+          Import from File
+          <input type="file" accept=".json" @change="importFromFile" hidden />
+        </label>
+        <button class="btn btn-danger btn-sm" v-if="sessions.length > 0" @click="confirmClearAll">
           Clear All History
         </button>
       </div>
@@ -156,6 +163,56 @@ export default {
       navigator.clipboard.writeText(genomeStr).then(() => {
         alert('Genome JSON copied to clipboard!');
       });
+    },
+    exportToFile() {
+      const data = historyStorage.getAll();
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.download = `picbreeder-history-${new Date().toISOString().slice(0,10)}.json`;
+      link.href = url;
+      link.click();
+      URL.revokeObjectURL(url);
+    },
+    importFromFile(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const imported = JSON.parse(e.target.result);
+          if (!Array.isArray(imported)) {
+            alert('Invalid file format');
+            return;
+          }
+
+          const validSessions = imported.filter(item =>
+            item && item.id && item.timestamp && Array.isArray(item.images)
+          );
+
+          if (validSessions.length === 0) {
+            alert('No valid sessions found in file');
+            return;
+          }
+
+          // Merge with existing sessions
+          const existing = historyStorage.getAll();
+          const existingIds = new Set(existing.map(s => s.id));
+          const newSessions = validSessions.filter(s => !existingIds.has(s.id));
+
+          const merged = [...newSessions, ...existing];
+          merged.sort((a, b) => b.timestamp - a.timestamp);
+
+          localStorage.setItem('picbreeder_history', JSON.stringify(merged));
+          this.loadSessions();
+          alert(`Imported ${newSessions.length} new session(s)`);
+        } catch (err) {
+          alert('Error reading file: ' + err.message);
+        }
+      };
+      reader.readAsText(file);
+      event.target.value = '';
     }
   }
 }
@@ -176,6 +233,14 @@ export default {
 
 .history-controls {
   margin: 15px 0;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.import-btn {
+  cursor: pointer;
+  margin: 0;
 }
 
 .sessions-list {
