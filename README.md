@@ -141,3 +141,4 @@ MIT
 - menu where you race against ai and random selection
 - compare LLMs, humans, random selection images
 - write paper
+- rewrite backend in python
