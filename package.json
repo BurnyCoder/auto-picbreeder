@@ -6,7 +6,8 @@
     "serve": "vue-cli-service serve",
     "server": "node server.js",
     "dev": "node server.js & vue-cli-service serve",
-    "build": "vue-cli-service build"
+    "build": "vue-cli-service build",
+    "test": "node tests/openaiService.test.js"
   },
   "dependencies": {
     "bootstrap": "^4.5.3",

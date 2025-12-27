@@ -70,7 +70,7 @@ function dataUrlToBase64(dataUrl) {
  * Select the best image from an array of image data URLs using GPT-5-Nano
  * @param {Array<{index: number, dataUrl: string}>} images - Array of images with index and data URL
  * @param {string} criteria - Optional criteria for selection (default: aesthetic appeal)
- * @returns {Promise<number>} - Index of the selected image
+ * @returns {Promise<{index: number, reasoning: string}>} - Index and reasoning for the selected image
  */
 export async function selectBestImage(images, criteria = null) {
   const apiKey = getApiKey();
@@ -117,7 +117,8 @@ export async function selectBestImage(images, criteria = null) {
             content: content
           }
         ],
-        max_completion_tokens: 50
+        max_completion_tokens: 1500,
+        response_format: { type: 'json_object' }
       })
     });
 
@@ -129,10 +130,10 @@ export async function selectBestImage(images, criteria = null) {
     const data = await response.json();
     const responseText = data.choices?.[0]?.message?.content || '';
 
-    // Parse the response to extract the selected image number
-    const selectedIndex = parseSelectionResponse(responseText, images.length);
+    // Parse the JSON response to extract selection and reasoning
+    const result = parseSelectionResponse(responseText, images.length);
 
-    return selectedIndex;
+    return result;
   } catch (error) {
     console.error('OpenAI API error:', error);
     throw error;
@@ -156,27 +157,44 @@ Consider:
 - Unique or unusual features
 - Overall aesthetic appeal
 
-Respond with ONLY the number of your chosen image (1-${imageCount}). Do not include any other text.`;
+Respond with JSON only in this exact format:
+{"image": <number 1-${imageCount}>, "reasoning": "<brief explanation>"}`;
 }
 
 /**
- * Parse the AI response to extract the selected image number
+ * Parse the AI response to extract the selected image number and reasoning
+ * @returns {{index: number, reasoning: string}}
  */
 function parseSelectionResponse(response, maxIndex) {
-  // Try to extract a number from the response
-  const matches = response.match(/\d+/);
+  // Try to parse as JSON first
+  try {
+    // Extract JSON from response (in case there's extra text)
+    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0]);
+      const num = parsed.image;
+      const reasoning = parsed.reasoning || '';
 
+      if (num >= 1 && num <= maxIndex) {
+        return { index: num - 1, reasoning: reasoning };
+      }
+    }
+  } catch (e) {
+    console.warn('Failed to parse JSON response:', e);
+  }
+
+  // Fallback: try to extract just a number
+  const matches = response.match(/\d+/);
   if (matches) {
     const num = parseInt(matches[0], 10);
-    // Convert 1-indexed response to 0-indexed
     if (num >= 1 && num <= maxIndex) {
-      return num - 1;
+      return { index: num - 1, reasoning: 'No reasoning provided' };
     }
   }
 
   // If parsing fails, return a random index as fallback
   console.warn('Could not parse AI response, selecting randomly:', response);
-  return Math.floor(Math.random() * maxIndex);
+  return { index: Math.floor(Math.random() * maxIndex), reasoning: 'Failed to parse AI response' };
 }
 
 /**

@@ -33,6 +33,7 @@ Evolution Component for the Picbreeder site
           <button class="btn btn-sm btn-secondary" id="aiSettingsBtn" title="Configure API Key">⚙</button>
         </div>
         <div class="ai-status" id="aiStatus"></div>
+        <div class="ai-reasoning" id="aiReasoning"></div>
       </div>
       <!-- AI Settings Modal -->
       <div class="ai-modal" id="aiSettingsModal">
@@ -508,6 +509,7 @@ export default {
 
     function updateAiStatus() {
       var statusEl = document.getElementById('aiStatus');
+      var reasoningEl = document.getElementById('aiReasoning');
       var aiEnabled = openaiService.isAiEnabled();
       var apiKey = openaiService.getApiKey();
       var isEnvKey = openaiService.isEnvApiKey();
@@ -515,9 +517,11 @@ export default {
       if (!aiEnabled) {
         statusEl.textContent = '';
         statusEl.className = 'ai-status';
+        reasoningEl.style.display = 'none';
       } else if (!apiKey) {
         statusEl.textContent = 'API key required - click ⚙ to configure';
         statusEl.className = 'ai-status ai-status-warning';
+        reasoningEl.style.display = 'none';
       } else {
         var keySource = isEnvKey ? ' (using .env)' : '';
         statusEl.textContent = 'AI will auto-select after restart or mutate' + keySource;
@@ -576,8 +580,10 @@ export default {
     // AI-assisted mutation function
     async function performAiSelection() {
       var statusEl = document.getElementById('aiStatus');
+      var reasoningEl = document.getElementById('aiReasoning');
       statusEl.textContent = 'AI is analyzing images...';
       statusEl.className = 'ai-status ai-status-working';
+      reasoningEl.style.display = 'none';
 
       try {
         // Collect all image data URLs
@@ -591,7 +597,9 @@ export default {
         }
 
         // Call OpenAI to select the best image
-        var selectedIndex = await openaiService.selectBestImage(images);
+        var result = await openaiService.selectBestImage(images);
+        var selectedIndex = result.index;
+        var reasoning = result.reasoning;
 
         // Auto-select the AI-chosen image
         selectionList = [selectedIndex];
@@ -605,6 +613,10 @@ export default {
 
         statusEl.textContent = 'AI selected image #' + (selectedIndex + 1);
         statusEl.className = 'ai-status ai-status-active';
+
+        // Show reasoning
+        reasoningEl.textContent = reasoning;
+        reasoningEl.style.display = 'block';
 
       } catch (error) {
         console.error('AI selection error:', error);
@@ -906,6 +918,18 @@ svg {
 
 .ai-status-working {
   color: #007bff;
+}
+
+.ai-reasoning {
+  display: none;
+  margin-top: 8px;
+  padding: 8px 10px;
+  background: #e8f4fd;
+  border-left: 3px solid #007bff;
+  border-radius: 3px;
+  font-size: 0.85em;
+  color: #333;
+  font-style: italic;
 }
 
 /* AI Settings Modal */
