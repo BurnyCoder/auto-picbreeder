@@ -27,7 +27,7 @@ Extended with History feature
       </div>
 
       <div class="autosave-controls">
-        <span class="autosave-label">Auto-save to disk:</span>
+        <span class="autosave-label">Auto-save JSON to disk:</span>
         <button v-if="!hasSaveFolder" class="btn btn-success btn-sm" @click="selectSaveFolder">
           Select Folder
         </button>
@@ -35,6 +35,18 @@ Extended with History feature
           Enabled
           <button class="btn btn-outline-secondary btn-sm" @click="changeSaveFolder">Change</button>
           <button class="btn btn-outline-danger btn-sm" @click="disableAutoSave">Disable</button>
+        </span>
+      </div>
+
+      <div class="autosave-controls">
+        <span class="autosave-label">Auto-save images (PNG):</span>
+        <button v-if="!hasImagesFolder" class="btn btn-success btn-sm" @click="selectImagesFolder">
+          Select Images Folder
+        </button>
+        <span v-else class="autosave-status">
+          Enabled (session subfolders)
+          <button class="btn btn-outline-secondary btn-sm" @click="changeImagesFolder">Change</button>
+          <button class="btn btn-outline-danger btn-sm" @click="disableImagesSave">Disable</button>
         </span>
       </div>
 
@@ -111,12 +123,14 @@ export default {
       stats: { sessionCount: 0, imageCount: 0, sizeKB: 0 },
       selectedSession: null,
       selectedImage: null,
-      hasSaveFolder: false
+      hasSaveFolder: false,
+      hasImagesFolder: false
     }
   },
   async mounted() {
     this.loadSessions();
     this.hasSaveFolder = await historyStorage.hasSaveFolder();
+    this.hasImagesFolder = await historyStorage.hasImagesFolder();
   },
   methods: {
     loadSessions() {
@@ -137,6 +151,20 @@ export default {
     async disableAutoSave() {
       await historyStorage.clearSaveFolder();
       this.hasSaveFolder = false;
+    },
+    async selectImagesFolder() {
+      const success = await historyStorage.selectImagesFolder();
+      if (success) {
+        this.hasImagesFolder = true;
+        alert('Images folder set! Each mutation will save PNG images to session subfolders.');
+      }
+    },
+    async changeImagesFolder() {
+      await this.selectImagesFolder();
+    },
+    async disableImagesSave() {
+      await historyStorage.clearImagesFolder();
+      this.hasImagesFolder = false;
     },
     formatDate(timestamp) {
       return new Date(timestamp).toLocaleDateString();

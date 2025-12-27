@@ -19,6 +19,7 @@ Key features:
 - **Explore**: Browse and discover images evolved by the community
 - **Image View**: Detailed view of individual evolved images with ratings and tags
 - **History**: Auto-saved evolution history with session tracking, export/import to file, and the ability to reload previous genomes
+- **Auto-save Images**: Automatically saves mutated images as PNG files to disk (via local server or browser File System API)
 
 ## Tech Stack
 
@@ -27,6 +28,7 @@ Key features:
 - Bootstrap / Bootstrap-Vue
 - Hooper (carousel component)
 - NEAT.js (neural network evolution)
+- Express (dev server for image auto-save)
 
 ## Development
 
@@ -44,10 +46,16 @@ npm install
 ### Run Development Server
 
 ```bash
-npm run serve
+npm run dev
 ```
 
-The app will be available at http://localhost:8080/ with hot-reload enabled.
+This runs both the Vue app (http://localhost:8080/) and the image save server (port 3001). Images are automatically saved to `images/` folder in session subfolders.
+
+Or run them separately:
+```bash
+npm run server   # Image save server only (port 3001)
+npm run serve    # Vue dev server only (port 8080)
+```
 
 ### Production Build
 
@@ -60,6 +68,8 @@ npm run build
 ```
 ├── public/
 │   └── index.html
+├── images/                # Auto-saved PNG images (session subfolders)
+├── server.js              # Express server for auto-saving images
 ├── src/
 │   ├── assets/              # Images, CSS, SVGs
 │   ├── components/          # Vue components

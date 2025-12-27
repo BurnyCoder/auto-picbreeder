@@ -2,6 +2,8 @@ const STORAGE_KEY = 'picbreeder_history';
 const MAX_SESSIONS = 50;
 const DB_NAME = 'picbreeder_db';
 const DB_STORE = 'fileHandles';
+const IMAGES_FOLDER_KEY = 'imagesFolder';
+const SERVER_URL = 'http://localhost:3001';
 
 // IndexedDB for storing file handle
 let dbPromise = null;
@@ -94,21 +96,23 @@ export const historyStorage = {
     const sessions = this.getAll();
     const session = sessions.find(s => s.id === sessionId);
 
+    let newImages;
     if (!session) {
       // Session doesn't exist, create new one with these images
+      newImages = images.map(img => ({
+        id: this.generateId(),
+        thumbnail: img.thumbnail,
+        genome: img.genome
+      }));
       const newSession = {
         id: sessionId || this.generateId(),
         timestamp: Date.now(),
-        images: images.map(img => ({
-          id: this.generateId(),
-          thumbnail: img.thumbnail,
-          genome: img.genome
-        }))
+        images: newImages
       };
       sessions.unshift(newSession);
     } else {
       // Add images to existing session
-      const newImages = images.map(img => ({
+      newImages = images.map(img => ({
         id: this.generateId(),
         thumbnail: img.thumbnail,
         genome: img.genome
@@ -126,6 +130,10 @@ export const historyStorage = {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
       // Auto-save to file if folder is configured
       this.saveToFile();
+      // Auto-save images as PNG files if images folder is configured
+      this.saveImagesToDisk(sessionId, newImages);
+      // Auto-save images to server (for local dev)
+      this.saveImagesToServer(sessionId, newImages);
       return true;
     } catch (e) {
       console.error('Error saving to history:', e);
@@ -246,6 +254,124 @@ export const historyStorage = {
   async hasSaveFolder() {
     const handle = await this.getSaveFolder();
     return handle !== null;
+  },
+
+  // Image folder methods for saving PNG files
+  async selectImagesFolder() {
+    try {
+      const dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+      const db = await getDB();
+      const tx = db.transaction(DB_STORE, 'readwrite');
+      tx.objectStore(DB_STORE).put(dirHandle, IMAGES_FOLDER_KEY);
+      await new Promise((resolve, reject) => {
+        tx.oncomplete = resolve;
+        tx.onerror = () => reject(tx.error);
+      });
+      return true;
+    } catch (e) {
+      if (e.name !== 'AbortError') {
+        console.error('Error selecting images folder:', e);
+      }
+      return false;
+    }
+  },
+
+  async getImagesFolder() {
+    try {
+      const db = await getDB();
+      const tx = db.transaction(DB_STORE, 'readonly');
+      const request = tx.objectStore(DB_STORE).get(IMAGES_FOLDER_KEY);
+      return new Promise((resolve) => {
+        request.onsuccess = () => resolve(request.result || null);
+        request.onerror = () => resolve(null);
+      });
+    } catch (e) {
+      return null;
+    }
+  },
+
+  async hasImagesFolder() {
+    const handle = await this.getImagesFolder();
+    return handle !== null;
+  },
+
+  async clearImagesFolder() {
+    try {
+      const db = await getDB();
+      const tx = db.transaction(DB_STORE, 'readwrite');
+      tx.objectStore(DB_STORE).delete(IMAGES_FOLDER_KEY);
+    } catch (e) {
+      console.error('Error clearing images folder:', e);
+    }
+  },
+
+  // Convert data URL to Blob
+  dataURLtoBlob(dataURL) {
+    const arr = dataURL.split(',');
+    const mime = arr[0].match(/:(.*?);/)[1];
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while (n--) {
+      u8arr[n] = bstr.charCodeAt(n);
+    }
+    return new Blob([u8arr], { type: mime });
+  },
+
+  // Save images to disk as PNG files in session subfolders (browser File System API)
+  async saveImagesToDisk(sessionId, images) {
+    const dirHandle = await this.getImagesFolder();
+    if (!dirHandle) return false;
+
+    try {
+      // Verify permission
+      const permission = await dirHandle.queryPermission({ mode: 'readwrite' });
+      if (permission !== 'granted') {
+        const request = await dirHandle.requestPermission({ mode: 'readwrite' });
+        if (request !== 'granted') return false;
+      }
+
+      // Create or get session subfolder
+      const sessionFolderHandle = await dirHandle.getDirectoryHandle(sessionId, { create: true });
+
+      // Save each image
+      for (const img of images) {
+        const timestamp = Date.now();
+        const fileName = `${img.id || timestamp}.png`;
+        const fileHandle = await sessionFolderHandle.getFileHandle(fileName, { create: true });
+        const writable = await fileHandle.createWritable();
+        const blob = this.dataURLtoBlob(img.thumbnail);
+        await writable.write(blob);
+        await writable.close();
+      }
+
+      return true;
+    } catch (e) {
+      console.error('Error saving images to disk:', e);
+      return false;
+    }
+  },
+
+  // Save images to server (automatic, no user permission needed)
+  async saveImagesToServer(sessionId, images) {
+    try {
+      for (const img of images) {
+        await fetch(`${SERVER_URL}/api/save-image`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sessionId,
+            imageId: img.id,
+            imageData: img.thumbnail
+          })
+        });
+      }
+      return true;
+    } catch (e) {
+      // Server might not be running - fail silently
+      console.debug('Server save skipped:', e.message);
+      return false;
+    }
   }
 };
 
