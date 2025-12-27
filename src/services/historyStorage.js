@@ -9,7 +9,23 @@ export const historyStorage = {
   getAll() {
     try {
       const data = localStorage.getItem(STORAGE_KEY);
-      return data ? JSON.parse(data) : [];
+      if (!data) return [];
+
+      const parsed = JSON.parse(data);
+      if (!Array.isArray(parsed)) return [];
+
+      // Filter to only valid session objects (have images array)
+      // This handles migration from old format
+      const validSessions = parsed.filter(item =>
+        item && item.id && item.timestamp && Array.isArray(item.images)
+      );
+
+      // If we filtered out invalid data, save the cleaned version
+      if (validSessions.length !== parsed.length) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(validSessions));
+      }
+
+      return validSessions;
     } catch (e) {
       console.error('Error reading history:', e);
       return [];
