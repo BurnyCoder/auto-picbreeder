@@ -1,5 +1,23 @@
 const STORAGE_KEY = 'picbreeder_history';
 const MAX_SESSIONS = 50;
+const DB_NAME = 'picbreeder_db';
+const DB_STORE = 'fileHandles';
+
+// IndexedDB for storing file handle
+let dbPromise = null;
+function getDB() {
+  if (!dbPromise) {
+    dbPromise = new Promise((resolve, reject) => {
+      const request = indexedDB.open(DB_NAME, 1);
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => resolve(request.result);
+      request.onupgradeneeded = (e) => {
+        e.target.result.createObjectStore(DB_STORE);
+      };
+    });
+  }
+  return dbPromise;
+}
 
 export const historyStorage = {
   generateId() {
@@ -106,6 +124,8 @@ export const historyStorage = {
 
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
+      // Auto-save to file if folder is configured
+      this.saveToFile();
       return true;
     } catch (e) {
       console.error('Error saving to history:', e);
@@ -152,6 +172,80 @@ export const historyStorage = {
       sizeKB: Math.round(dataSize / 1024),
       percentFull: Math.round((dataSize / (5 * 1024 * 1024)) * 100)
     };
+  },
+
+  // File System Access API methods for auto-saving to disk
+  async selectSaveFolder() {
+    try {
+      const dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+      const db = await getDB();
+      const tx = db.transaction(DB_STORE, 'readwrite');
+      tx.objectStore(DB_STORE).put(dirHandle, 'saveFolder');
+      await new Promise((resolve, reject) => {
+        tx.oncomplete = resolve;
+        tx.onerror = () => reject(tx.error);
+      });
+      return true;
+    } catch (e) {
+      if (e.name !== 'AbortError') {
+        console.error('Error selecting folder:', e);
+      }
+      return false;
+    }
+  },
+
+  async getSaveFolder() {
+    try {
+      const db = await getDB();
+      const tx = db.transaction(DB_STORE, 'readonly');
+      const request = tx.objectStore(DB_STORE).get('saveFolder');
+      return new Promise((resolve) => {
+        request.onsuccess = () => resolve(request.result || null);
+        request.onerror = () => resolve(null);
+      });
+    } catch (e) {
+      return null;
+    }
+  },
+
+  async clearSaveFolder() {
+    try {
+      const db = await getDB();
+      const tx = db.transaction(DB_STORE, 'readwrite');
+      tx.objectStore(DB_STORE).delete('saveFolder');
+    } catch (e) {
+      console.error('Error clearing folder:', e);
+    }
+  },
+
+  async saveToFile() {
+    const dirHandle = await this.getSaveFolder();
+    if (!dirHandle) return false;
+
+    try {
+      // Verify we still have permission
+      const permission = await dirHandle.queryPermission({ mode: 'readwrite' });
+      if (permission !== 'granted') {
+        const request = await dirHandle.requestPermission({ mode: 'readwrite' });
+        if (request !== 'granted') return false;
+      }
+
+      const data = this.getAll();
+      const fileName = 'picbreeder-history.json';
+      const fileHandle = await dirHandle.getFileHandle(fileName, { create: true });
+      const writable = await fileHandle.createWritable();
+      await writable.write(JSON.stringify(data, null, 2));
+      await writable.close();
+      return true;
+    } catch (e) {
+      console.error('Error saving to file:', e);
+      return false;
+    }
+  },
+
+  async hasSaveFolder() {
+    const handle = await this.getSaveFolder();
+    return handle !== null;
   }
 };
 

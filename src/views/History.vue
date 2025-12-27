@@ -26,6 +26,18 @@ Extended with History feature
         </button>
       </div>
 
+      <div class="autosave-controls">
+        <span class="autosave-label">Auto-save to disk:</span>
+        <button v-if="!hasSaveFolder" class="btn btn-success btn-sm" @click="selectSaveFolder">
+          Select Folder
+        </button>
+        <span v-else class="autosave-status">
+          Enabled
+          <button class="btn btn-outline-secondary btn-sm" @click="changeSaveFolder">Change</button>
+          <button class="btn btn-outline-danger btn-sm" @click="disableAutoSave">Disable</button>
+        </span>
+      </div>
+
       <div class="sessions-list" v-if="sessions.length > 0">
         <div class="session-card" v-for="session in sessions" :key="session.id">
           <div class="session-header">
@@ -98,16 +110,33 @@ export default {
       sessions: [],
       stats: { sessionCount: 0, imageCount: 0, sizeKB: 0 },
       selectedSession: null,
-      selectedImage: null
+      selectedImage: null,
+      hasSaveFolder: false
     }
   },
-  mounted() {
+  async mounted() {
     this.loadSessions();
+    this.hasSaveFolder = await historyStorage.hasSaveFolder();
   },
   methods: {
     loadSessions() {
       this.sessions = historyStorage.getAll();
       this.stats = historyStorage.getStats();
+    },
+    async selectSaveFolder() {
+      const success = await historyStorage.selectSaveFolder();
+      if (success) {
+        this.hasSaveFolder = true;
+        await historyStorage.saveToFile();
+        alert('Auto-save folder set! History will be saved to picbreeder-history.json in the selected folder.');
+      }
+    },
+    async changeSaveFolder() {
+      await this.selectSaveFolder();
+    },
+    async disableAutoSave() {
+      await historyStorage.clearSaveFolder();
+      this.hasSaveFolder = false;
     },
     formatDate(timestamp) {
       return new Date(timestamp).toLocaleDateString();
@@ -241,6 +270,29 @@ export default {
 .import-btn {
   cursor: pointer;
   margin: 0;
+}
+
+.autosave-controls {
+  margin: 15px 0;
+  padding: 10px 15px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.autosave-label {
+  font-weight: 500;
+}
+
+.autosave-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #28a745;
+  font-weight: 500;
 }
 
 .sessions-list {
