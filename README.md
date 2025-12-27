@@ -18,6 +18,7 @@ Key features:
 - **Evolve**: Interactive evolution interface to create new images
 - **Explore**: Browse and discover images evolved by the community
 - **Image View**: Detailed view of individual evolved images with ratings and tags
+- **History**: Auto-saved evolution history with session tracking, export/import to file, and the ability to reload previous genomes
 
 ## Tech Stack
 
@@ -60,28 +61,37 @@ npm run build
 ├── public/
 │   └── index.html
 ├── src/
-│   ├── assets/          # Images, CSS, SVGs
-│   ├── components/      # Vue components
+│   ├── assets/              # Images, CSS, SVGs
+│   ├── components/          # Vue components
 │   │   ├── EvolveGrid.vue
 │   │   ├── EvolveOptions.vue
 │   │   ├── ExploreCarousel.vue
+│   │   ├── ExploreCategoryOption.vue
 │   │   ├── ExploreFilter.vue
+│   │   ├── Footer.vue
 │   │   ├── NavBar.vue
-│   │   └── Footer.vue
-│   ├── lib/             # Core libraries
-│   │   ├── neat.js      # NEAT algorithm
-│   │   ├── netart.js    # Network art generation
-│   │   ├── convnet.js   # Convolutional network
-│   │   └── recurrent.js # Recurrent network
-│   ├── router/          # Vue Router config
-│   ├── views/           # Page components
-│   │   ├── Homepage.vue
+│   │   └── ThreeColumns.vue
+│   ├── lib/                 # Core libraries
+│   │   ├── convnet.js       # Convolutional network
+│   │   ├── jquery-1.11.3.min.js
+│   │   ├── neat.js          # NEAT algorithm
+│   │   ├── netart.js        # Network art generation
+│   │   └── recurrent.js     # Recurrent network
+│   ├── router/              # Vue Router config
+│   │   └── index.js
+│   ├── services/            # Application services
+│   │   └── historyStorage.js  # LocalStorage history management
+│   ├── views/               # Page components
+│   │   ├── About.vue
 │   │   ├── Evolve.vue
-│   │   ├── Explore.vue
 │   │   ├── EvolvedImage.vue
-│   │   └── About.vue
+│   │   ├── Explore.vue
+│   │   ├── History.vue
+│   │   └── Homepage.vue
 │   ├── App.vue
 │   └── main.js
+├── babel.config.js
+├── vue.config.js
 └── package.json
 ```
 
