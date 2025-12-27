@@ -141,3 +141,11 @@ npm run build
 
 MIT
 
+## Todo
+- when evolving, also show currently evolved image
+- memory for LLMs in sessions using openai assistants api
+- give llm permission to stop evolving
+- save those autoselected by AI with a flag
+- menu where you race against ai and random selection
+- compare LLMs, humans, random selection images
+- write paper
