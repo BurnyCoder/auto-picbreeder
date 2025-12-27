@@ -1,0 +1,277 @@
+<!--
+Southwestern University Computer Science Capstone - Spring 2020
+
+Extended with History feature
+-->
+
+<template>
+  <div class="history">
+    <NavBar/>
+    <div class="history-container">
+      <h2>Evolution History</h2>
+      <p class="history-stats" v-if="stats.count > 0">
+        {{ stats.count }} saved images ({{ stats.sizeKB }}KB used)
+      </p>
+
+      <div class="history-controls" v-if="entries.length > 0">
+        <button class="btn btn-danger btn-sm" @click="confirmClearAll">
+          Clear All History
+        </button>
+      </div>
+
+      <div class="history-grid" v-if="entries.length > 0">
+        <div
+          class="history-item"
+          v-for="entry in entries"
+          :key="entry.id"
+          @click="selectEntry(entry)"
+        >
+          <img :src="entry.thumbnail" :alt="'Saved ' + formatDate(entry.timestamp)" />
+          <div class="history-item-date">{{ formatDate(entry.timestamp) }}</div>
+          <button class="delete-btn" @click.stop="deleteEntry(entry.id)">x</button>
+        </div>
+      </div>
+
+      <div class="history-empty" v-else>
+        <p>No saved images yet.</p>
+        <p>Select images in the <router-link to="/evolve">Evolve</router-link> page and click "mutate" to save them automatically.</p>
+      </div>
+
+      <!-- Detail Modal -->
+      <div class="history-modal" v-if="selectedEntry" @click.self="closeModal">
+        <div class="modal-content">
+          <button class="close-btn" @click="closeModal">x</button>
+          <img :src="selectedEntry.thumbnail" class="modal-image" />
+          <div class="modal-info">
+            <p><strong>Saved:</strong> {{ formatDateTime(selectedEntry.timestamp) }}</p>
+            <p><strong>ID:</strong> {{ selectedEntry.id }}</p>
+          </div>
+          <div class="modal-actions">
+            <button class="btn btn-success" @click="loadIntoEvolve">
+              Load into Evolve
+            </button>
+            <button class="btn btn-info" @click="downloadImage">
+              Download PNG
+            </button>
+            <button class="btn btn-secondary" @click="copyGenome">
+              Copy Genome JSON
+            </button>
+            <button class="btn btn-danger" @click="deleteAndClose">
+              Delete
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <Footer/>
+  </div>
+</template>
+
+<script>
+import NavBar from '../components/NavBar.vue'
+import Footer from '../components/Footer.vue'
+import historyStorage from '../services/historyStorage.js'
+
+export default {
+  name: 'History',
+  components: {
+    NavBar,
+    Footer,
+  },
+  data() {
+    return {
+      entries: [],
+      stats: { count: 0, sizeKB: 0, percentFull: 0 },
+      selectedEntry: null
+    }
+  },
+  mounted() {
+    this.loadEntries();
+  },
+  methods: {
+    loadEntries() {
+      this.entries = historyStorage.getAll();
+      this.stats = historyStorage.getStats();
+    },
+    formatDate(timestamp) {
+      return new Date(timestamp).toLocaleDateString();
+    },
+    formatDateTime(timestamp) {
+      return new Date(timestamp).toLocaleString();
+    },
+    selectEntry(entry) {
+      this.selectedEntry = entry;
+    },
+    closeModal() {
+      this.selectedEntry = null;
+    },
+    deleteEntry(id) {
+      if (confirm('Delete this saved image?')) {
+        historyStorage.delete(id);
+        this.loadEntries();
+      }
+    },
+    deleteAndClose() {
+      if (this.selectedEntry) {
+        historyStorage.delete(this.selectedEntry.id);
+        this.closeModal();
+        this.loadEntries();
+      }
+    },
+    confirmClearAll() {
+      if (confirm('Delete ALL saved images? This cannot be undone.')) {
+        historyStorage.clearAll();
+        this.loadEntries();
+      }
+    },
+    loadIntoEvolve() {
+      sessionStorage.setItem('picbreeder_load_genome', JSON.stringify(this.selectedEntry.genome));
+      this.$router.push('/evolve');
+    },
+    downloadImage() {
+      const link = document.createElement('a');
+      link.download = `picbreeder-${this.selectedEntry.id}.png`;
+      link.href = this.selectedEntry.thumbnail;
+      link.click();
+    },
+    copyGenome() {
+      const genomeStr = JSON.stringify(this.selectedEntry.genome, null, 2);
+      navigator.clipboard.writeText(genomeStr).then(() => {
+        alert('Genome JSON copied to clipboard!');
+      });
+    }
+  }
+}
+</script>
+
+<style scoped>
+.history-container {
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+  min-height: 60vh;
+}
+
+.history-stats {
+  color: #666;
+  font-size: 14px;
+}
+
+.history-controls {
+  margin: 15px 0;
+}
+
+.history-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.history-item {
+  position: relative;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: border-color 0.2s;
+}
+
+.history-item:hover {
+  border-color: #42b983;
+}
+
+.history-item img {
+  width: 100%;
+  display: block;
+}
+
+.history-item-date {
+  font-size: 10px;
+  text-align: center;
+  padding: 2px;
+  background: rgba(0,0,0,0.7);
+  color: white;
+}
+
+.delete-btn {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  background: rgba(255,0,0,0.7);
+  color: white;
+  border: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.history-item:hover .delete-btn {
+  opacity: 1;
+}
+
+.history-empty {
+  text-align: center;
+  padding: 50px;
+  color: #666;
+}
+
+.history-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  max-width: 500px;
+  position: relative;
+}
+
+.close-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+}
+
+.modal-image {
+  width: 320px;
+  height: 320px;
+  display: block;
+  margin: 0 auto 15px;
+  image-rendering: pixelated;
+}
+
+.modal-info {
+  margin: 15px 0;
+  font-size: 14px;
+}
+
+.modal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+}
+
+.modal-actions .btn {
+  flex: 1;
+  min-width: 120px;
+}
+</style>

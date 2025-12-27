@@ -33,6 +33,11 @@ const routes = [
     name: 'EvolvedImage',
     component: () => import(/* webpackChunkName: "explore" */ '../views/EvolvedImage.vue')
   },
+  {
+    path: '/history',
+    name: 'History',
+    component: () => import(/* webpackChunkName: "history" */ '../views/History.vue')
+  },
 ]
 
 const router = new VueRouter({

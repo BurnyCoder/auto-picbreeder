@@ -44,6 +44,9 @@ import * as N from "../lib/neat";
 import * as NetArt from "../lib/netart";
 import * as R from "../lib/recurrent";
 
+//History storage
+import historyStorage from "../services/historyStorage";
+
 
 export default {
   name: 'Grid',
@@ -246,6 +249,16 @@ export default {
       ctx2.drawImage(canvas2, 0, 0);
     }
 
+    function createThumbnailDataURL(genomeObj, size) {
+      var tempCanvas = document.createElement('canvas');
+      tempCanvas.width = size;
+      tempCanvas.height = size;
+      var tempCtx = tempCanvas.getContext('2d');
+      var img = NetArt.genGenomeImage(genomeObj, size, size);
+      tempCtx.putImageData(img.getCanvasImage(tempCtx), 0, 0);
+      return tempCanvas.toDataURL('image/png');
+    }
+
     function initSecondScreen(selection) {
       var loc = getPicLoc(selection);
       var i, j;
@@ -335,6 +348,18 @@ export default {
     $("#evolve_button").click(function(){
       var len = selectionList.length;
       if (len === 0) return;
+
+      // AUTO-SAVE: Save all selected parent genomes before mutation
+      for (var s = 0; s < len; s++) {
+        var selectedIdx = selectionList[s];
+        var selectedGenome = getThing(genome, selectedIdx);
+        var genomeCopy = selectedGenome.copy();
+        genomeCopy.roundWeights();
+        var genomeJSON = genomeCopy.toJSON();
+        var thumbnailURL = createThumbnailDataURL(genomeCopy, thumbSize);
+        historyStorage.save(genomeJSON, thumbnailURL);
+      }
+
       var mom, dad;
       var momGene, dadGene;
       var loc;
@@ -422,11 +447,56 @@ export default {
 
     function main() {
       // start of the program
-        initAll();
-        initGenome();
-        initThumb();
-        drawAllThumb();
-        $("#mainScreen").show();
+      var loadedGenomeData = sessionStorage.getItem('picbreeder_load_genome');
+      if (loadedGenomeData) {
+        sessionStorage.removeItem('picbreeder_load_genome');
+        try {
+          var genomeData = JSON.parse(loadedGenomeData);
+
+          initAll();
+
+          // Set render mode from loaded data
+          N.setRenderMode(genomeData.renderMode || 0);
+
+          // Create a new genome and load the saved data
+          var loadedGenome = new N.Genome();
+          loadedGenome.fromJSON(genomeData);
+
+          // Place loaded genome in center of grid (position 2,2 in 5x5 grid)
+          genome[2][2] = loadedGenome;
+
+          // Fill rest of grid with mutations of the loaded genome
+          for (var i = 0; i < nRow; i++) {
+            for (var j = 0; j < nCol; j++) {
+              if (i !== 2 || j !== 2) {
+                genome[i][j] = loadedGenome.copy();
+                genome[i][j].mutateWeights();
+                if (Math.random() < 0.5) genome[i][j].addRandomNode();
+                if (Math.random() < 0.5) genome[i][j].addRandomConnection();
+              }
+            }
+          }
+
+          initThumb();
+          drawAllThumb();
+          $("#mainScreen").show();
+
+          // Auto-select the center loaded genome
+          selectionList = [12];
+          updateSelected();
+
+          return;
+        } catch (e) {
+          console.error('Error loading genome:', e);
+        }
+      }
+
+      // Normal initialization
+      initAll();
+      initGenome();
+      initThumb();
+      drawAllThumb();
+      $("#mainScreen").show();
 
     }
     /* eslint-enable no-unused-vars */
