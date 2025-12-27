@@ -1,14 +1,38 @@
 /**
  * OpenAI Service for AI-assisted image selection
- * Uses GPT-5-Nano with vision capabilities to select the best image from mutations
+ * Uses GPT-5 models with vision capabilities to select the best image from mutations
  */
 
 const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
-const MODEL = 'gpt-5-nano';
 
-// Local storage key for API key
+// Available models with vision support
+export const AVAILABLE_MODELS = [
+  { id: 'gpt-5.2', name: 'GPT-5.2', description: 'Best for coding and agentic tasks' },
+  { id: 'gpt-5.1', name: 'GPT-5.1', description: 'Configurable reasoning effort' },
+  { id: 'gpt-5', name: 'GPT-5', description: 'Previous reasoning model' },
+  { id: 'gpt-5-mini', name: 'GPT-5 Mini', description: 'Faster, cost-efficient' },
+  { id: 'gpt-5-nano', name: 'GPT-5 Nano', description: 'Fastest, most cost-efficient' }
+];
+
+// Reasoning effort levels
+export const REASONING_EFFORTS = [
+  { id: 'none', name: 'None', description: 'No reasoning (fastest)' },
+  { id: 'minimal', name: 'Minimal', description: 'Few reasoning tokens' },
+  { id: 'low', name: 'Low', description: 'Speed over deliberation' },
+  { id: 'medium', name: 'Medium', description: 'Balanced (default)' },
+  { id: 'high', name: 'High', description: 'More complete reasoning' },
+  { id: 'xhigh', name: 'Extra High', description: 'Maximum reasoning (GPT-5.1+)' }
+];
+
+// Default settings
+const DEFAULT_MODEL = 'gpt-5-nano';
+const DEFAULT_REASONING_EFFORT = 'medium';
+
+// Local storage keys
 const API_KEY_STORAGE_KEY = 'picbreeder_openai_api_key';
 const AI_ENABLED_STORAGE_KEY = 'picbreeder_ai_enabled';
+const MODEL_STORAGE_KEY = 'picbreeder_ai_model';
+const REASONING_EFFORT_STORAGE_KEY = 'picbreeder_reasoning_effort';
 
 /**
  * Get the OpenAI API key
@@ -60,20 +84,43 @@ export function setAiEnabled(enabled) {
 }
 
 /**
- * Convert canvas data URL to base64 (strip the data URL prefix)
+ * Get the selected model
  */
-function dataUrlToBase64(dataUrl) {
-  return dataUrl.replace(/^data:image\/\w+;base64,/, '');
+export function getModel() {
+  return localStorage.getItem(MODEL_STORAGE_KEY) || DEFAULT_MODEL;
 }
 
 /**
- * Select the best image from an array of image data URLs using GPT-5-Nano
+ * Set the model
+ */
+export function setModel(model) {
+  localStorage.setItem(MODEL_STORAGE_KEY, model);
+}
+
+/**
+ * Get the reasoning effort level
+ */
+export function getReasoningEffort() {
+  return localStorage.getItem(REASONING_EFFORT_STORAGE_KEY) || DEFAULT_REASONING_EFFORT;
+}
+
+/**
+ * Set the reasoning effort level
+ */
+export function setReasoningEffort(effort) {
+  localStorage.setItem(REASONING_EFFORT_STORAGE_KEY, effort);
+}
+
+/**
+ * Select the best image from an array of image data URLs using GPT-5 models
  * @param {Array<{index: number, dataUrl: string}>} images - Array of images with index and data URL
  * @param {string} criteria - Optional criteria for selection (default: aesthetic appeal)
  * @returns {Promise<{index: number, reasoning: string}>} - Index and reasoning for the selected image
  */
 export async function selectBestImage(images, criteria = null) {
   const apiKey = getApiKey();
+  const model = getModel();
+  const reasoningEffort = getReasoningEffort();
 
   if (!apiKey) {
     throw new Error('OpenAI API key not configured');
@@ -92,7 +139,7 @@ export async function selectBestImage(images, criteria = null) {
   ];
 
   // Add each image to the content array
-  images.forEach((img, i) => {
+  images.forEach((img) => {
     content.push({
       type: 'image_url',
       image_url: {
@@ -102,6 +149,24 @@ export async function selectBestImage(images, criteria = null) {
     });
   });
 
+  // Build request body
+  const requestBody = {
+    model: model,
+    messages: [
+      {
+        role: 'user',
+        content: content
+      }
+    ],
+    max_completion_tokens: 1500,
+    response_format: { type: 'json_object' }
+  };
+
+  // Add reasoning_effort for GPT-5 reasoning models (not needed for none)
+  if (reasoningEffort !== 'none') {
+    requestBody.reasoning_effort = reasoningEffort;
+  }
+
   try {
     const response = await fetch(OPENAI_API_URL, {
       method: 'POST',
@@ -109,17 +174,7 @@ export async function selectBestImage(images, criteria = null) {
         'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        model: MODEL,
-        messages: [
-          {
-            role: 'user',
-            content: content
-          }
-        ],
-        max_completion_tokens: 1500,
-        response_format: { type: 'json_object' }
-      })
+      body: JSON.stringify(requestBody)
     });
 
     if (!response.ok) {
@@ -202,6 +257,7 @@ function parseSelectionResponse(response, maxIndex) {
  */
 export async function testConnection() {
   const apiKey = getApiKey();
+  const model = getModel();
 
   if (!apiKey) {
     return { success: false, error: 'No API key configured' };
@@ -215,7 +271,7 @@ export async function testConnection() {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: MODEL,
+        model: model,
         messages: [
           { role: 'user', content: 'Say "connected" if you can read this.' }
         ],
@@ -238,11 +294,17 @@ export async function testConnection() {
 }
 
 export default {
+  AVAILABLE_MODELS,
+  REASONING_EFFORTS,
   getApiKey,
   setApiKey,
   isEnvApiKey,
   isAiEnabled,
   setAiEnabled,
+  getModel,
+  setModel,
+  getReasoningEffort,
+  setReasoningEffort,
   selectBestImage,
   testConnection
 };

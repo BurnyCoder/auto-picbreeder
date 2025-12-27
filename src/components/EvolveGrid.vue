@@ -28,20 +28,29 @@ Evolution Component for the Picbreeder site
         <div class="ai-toggle-row">
           <label class="ai-toggle">
             <input type="checkbox" id="aiEnabledCheckbox" />
-            <span class="ai-toggle-label">AI Auto-Select (GPT-5-Nano)</span>
+            <span class="ai-toggle-label">AI Auto-Select</span>
           </label>
-          <button class="btn btn-sm btn-secondary" id="aiSettingsBtn" title="Configure API Key">⚙</button>
+          <button class="btn btn-sm btn-secondary" id="aiSettingsBtn" title="Configure AI Settings">⚙</button>
         </div>
+        <div class="ai-model-info" id="aiModelInfo"></div>
         <div class="ai-status" id="aiStatus"></div>
         <div class="ai-reasoning" id="aiReasoning"></div>
       </div>
       <!-- AI Settings Modal -->
       <div class="ai-modal" id="aiSettingsModal">
         <div class="ai-modal-content">
-          <h4>OpenAI API Settings</h4>
+          <h4>OpenAI AI Settings</h4>
           <div class="ai-form-group">
             <label for="apiKeyInput">API Key:</label>
             <input type="password" id="apiKeyInput" placeholder="sk-..." />
+          </div>
+          <div class="ai-form-group">
+            <label for="modelSelect">Model:</label>
+            <select id="modelSelect" class="ai-select"></select>
+          </div>
+          <div class="ai-form-group">
+            <label for="reasoningSelect">Reasoning Effort:</label>
+            <select id="reasoningSelect" class="ai-select"></select>
           </div>
           <div class="ai-form-group">
             <button class="btn btn-sm btn-info" id="testConnectionBtn">Test Connection</button>
@@ -500,11 +509,45 @@ export default {
     function initAiControls() {
       var aiEnabled = openaiService.isAiEnabled();
       var apiKey = openaiService.getApiKey();
+      var currentModel = openaiService.getModel();
+      var currentEffort = openaiService.getReasoningEffort();
 
       document.getElementById('aiEnabledCheckbox').checked = aiEnabled;
       document.getElementById('apiKeyInput').value = apiKey;
 
+      // Populate model dropdown
+      var modelSelect = document.getElementById('modelSelect');
+      modelSelect.innerHTML = '';
+      openaiService.AVAILABLE_MODELS.forEach(function(model) {
+        var option = document.createElement('option');
+        option.value = model.id;
+        option.textContent = model.name + ' - ' + model.description;
+        if (model.id === currentModel) option.selected = true;
+        modelSelect.appendChild(option);
+      });
+
+      // Populate reasoning effort dropdown
+      var reasoningSelect = document.getElementById('reasoningSelect');
+      reasoningSelect.innerHTML = '';
+      openaiService.REASONING_EFFORTS.forEach(function(effort) {
+        var option = document.createElement('option');
+        option.value = effort.id;
+        option.textContent = effort.name + ' - ' + effort.description;
+        if (effort.id === currentEffort) option.selected = true;
+        reasoningSelect.appendChild(option);
+      });
+
       updateAiStatus();
+      updateModelInfo();
+    }
+
+    function updateModelInfo() {
+      var modelInfoEl = document.getElementById('aiModelInfo');
+      var model = openaiService.getModel();
+      var effort = openaiService.getReasoningEffort();
+      var modelObj = openaiService.AVAILABLE_MODELS.find(function(m) { return m.id === model; });
+      var effortObj = openaiService.REASONING_EFFORTS.find(function(e) { return e.id === effort; });
+      modelInfoEl.textContent = (modelObj ? modelObj.name : model) + ' / ' + (effortObj ? effortObj.name : effort);
     }
 
     function updateAiStatus() {
@@ -518,14 +561,17 @@ export default {
         statusEl.textContent = '';
         statusEl.className = 'ai-status';
         reasoningEl.style.display = 'none';
+        document.getElementById('aiModelInfo').style.display = 'none';
       } else if (!apiKey) {
         statusEl.textContent = 'API key required - click ⚙ to configure';
         statusEl.className = 'ai-status ai-status-warning';
         reasoningEl.style.display = 'none';
+        document.getElementById('aiModelInfo').style.display = 'none';
       } else {
         var keySource = isEnvKey ? ' (using .env)' : '';
         statusEl.textContent = 'AI will auto-select after restart or mutate' + keySource;
         statusEl.className = 'ai-status ai-status-active';
+        document.getElementById('aiModelInfo').style.display = 'block';
       }
     }
 
@@ -538,6 +584,8 @@ export default {
     // Settings modal controls
     $("#aiSettingsBtn").click(function() {
       document.getElementById('apiKeyInput').value = openaiService.getApiKey();
+      document.getElementById('modelSelect').value = openaiService.getModel();
+      document.getElementById('reasoningSelect').value = openaiService.getReasoningEffort();
       document.getElementById('connectionStatus').textContent = '';
       $("#aiSettingsModal").show();
     });
@@ -548,8 +596,13 @@ export default {
 
     $("#saveApiKeyBtn").click(function() {
       var apiKey = document.getElementById('apiKeyInput').value.trim();
+      var model = document.getElementById('modelSelect').value;
+      var effort = document.getElementById('reasoningSelect').value;
       openaiService.setApiKey(apiKey);
+      openaiService.setModel(model);
+      openaiService.setReasoningEffort(effort);
       updateAiStatus();
+      updateModelInfo();
       $("#aiSettingsModal").hide();
     });
 
@@ -976,6 +1029,23 @@ svg {
   border: 1px solid #ccc;
   border-radius: 4px;
   font-size: 14px;
+}
+
+.ai-select {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+  background: white;
+}
+
+.ai-model-info {
+  display: none;
+  margin-top: 4px;
+  font-size: 0.8em;
+  color: #666;
+  font-weight: 500;
 }
 
 .ai-modal-buttons {

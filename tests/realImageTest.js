@@ -1,6 +1,10 @@
 /**
  * Test OpenAI image selection with real images
- * Run with: node tests/realImageTest.js
+ * Run with: node tests/realImageTest.js [model] [reasoning_effort]
+ * Examples:
+ *   node tests/realImageTest.js
+ *   node tests/realImageTest.js gpt-5-mini medium
+ *   node tests/realImageTest.js gpt-5.2 high
  */
 
 const fs = require('fs');
@@ -16,7 +20,24 @@ if (!API_KEY) {
 }
 
 const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
-const MODEL = 'gpt-5-nano';
+
+// Available models
+const AVAILABLE_MODELS = ['gpt-5.2', 'gpt-5.1', 'gpt-5', 'gpt-5-mini', 'gpt-5-nano'];
+const REASONING_EFFORTS = ['none', 'minimal', 'low', 'medium', 'high', 'xhigh'];
+
+// Parse command line arguments
+const MODEL = process.argv[2] || 'gpt-5-nano';
+const REASONING_EFFORT = process.argv[3] || 'medium';
+
+if (!AVAILABLE_MODELS.includes(MODEL)) {
+  console.error(`Error: Invalid model "${MODEL}". Available: ${AVAILABLE_MODELS.join(', ')}`);
+  process.exit(1);
+}
+
+if (!REASONING_EFFORTS.includes(REASONING_EFFORT)) {
+  console.error(`Error: Invalid reasoning effort "${REASONING_EFFORT}". Available: ${REASONING_EFFORTS.join(', ')}`);
+  process.exit(1);
+}
 
 // Find images in the images folder
 function findImages(dir, max = 5) {
@@ -82,7 +103,20 @@ async function selectBestImage(images) {
     });
   });
 
-  console.log(`\nSending ${images.length} images to GPT-5-Nano...`);
+  console.log(`\nSending ${images.length} images to ${MODEL} (reasoning: ${REASONING_EFFORT})...`);
+
+  // Build request body
+  const requestBody = {
+    model: MODEL,
+    messages: [{ role: 'user', content: content }],
+    max_completion_tokens: 1500,
+    response_format: { type: 'json_object' }
+  };
+
+  // Add reasoning_effort for GPT-5 reasoning models (not needed for none)
+  if (REASONING_EFFORT !== 'none') {
+    requestBody.reasoning_effort = REASONING_EFFORT;
+  }
 
   const response = await fetch(OPENAI_API_URL, {
     method: 'POST',
@@ -90,12 +124,7 @@ async function selectBestImage(images) {
       'Authorization': `Bearer ${API_KEY}`,
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify({
-      model: MODEL,
-      messages: [{ role: 'user', content: content }],
-      max_completion_tokens: 1500,
-      response_format: { type: 'json_object' }
-    })
+    body: JSON.stringify(requestBody)
   });
 
   if (!response.ok) {
@@ -110,7 +139,9 @@ async function selectBestImage(images) {
 
 // Main test
 async function main() {
-  console.log('=== Real Image Test ===\n');
+  console.log('=== Real Image Test ===');
+  console.log(`Model: ${MODEL}`);
+  console.log(`Reasoning Effort: ${REASONING_EFFORT}\n`);
 
   // Find images
   const imagesDir = path.join(__dirname, '..', 'images');
