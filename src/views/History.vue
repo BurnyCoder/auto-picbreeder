@@ -9,26 +9,34 @@ Extended with History feature
     <NavBar/>
     <div class="history-container">
       <h2>Evolution History</h2>
-      <p class="history-stats" v-if="stats.count > 0">
-        {{ stats.count }} saved images ({{ stats.sizeKB }}KB used)
+      <p class="history-stats" v-if="stats.sessionCount > 0">
+        {{ stats.sessionCount }} mutation sessions, {{ stats.imageCount }} total images ({{ stats.sizeKB }}KB used)
       </p>
 
-      <div class="history-controls" v-if="entries.length > 0">
+      <div class="history-controls" v-if="sessions.length > 0">
         <button class="btn btn-danger btn-sm" @click="confirmClearAll">
           Clear All History
         </button>
       </div>
 
-      <div class="history-grid" v-if="entries.length > 0">
-        <div
-          class="history-item"
-          v-for="entry in entries"
-          :key="entry.id"
-          @click="selectEntry(entry)"
-        >
-          <img :src="entry.thumbnail" :alt="'Saved ' + formatDate(entry.timestamp)" />
-          <div class="history-item-date">{{ formatDate(entry.timestamp) }}</div>
-          <button class="delete-btn" @click.stop="deleteEntry(entry.id)">x</button>
+      <div class="sessions-list" v-if="sessions.length > 0">
+        <div class="session-card" v-for="session in sessions" :key="session.id">
+          <div class="session-header">
+            <span class="session-date">{{ formatDateTime(session.timestamp) }}</span>
+            <span class="session-count">{{ session.images.length }} parent{{ session.images.length > 1 ? 's' : '' }}</span>
+            <button class="delete-session-btn" @click="deleteSession(session.id)">Delete Session</button>
+          </div>
+          <div class="session-images">
+            <div
+              class="session-image"
+              v-for="image in session.images"
+              :key="image.id"
+              @click="selectImage(session, image)"
+            >
+              <img :src="image.thumbnail" :alt="'Parent image'" />
+              <button class="delete-img-btn" @click.stop="deleteImage(session.id, image.id)">x</button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -38,13 +46,13 @@ Extended with History feature
       </div>
 
       <!-- Detail Modal -->
-      <div class="history-modal" v-if="selectedEntry" @click.self="closeModal">
+      <div class="history-modal" v-if="selectedImage" @click.self="closeModal">
         <div class="modal-content">
           <button class="close-btn" @click="closeModal">x</button>
-          <img :src="selectedEntry.thumbnail" class="modal-image" />
+          <img :src="selectedImage.thumbnail" class="modal-image" />
           <div class="modal-info">
-            <p><strong>Saved:</strong> {{ formatDateTime(selectedEntry.timestamp) }}</p>
-            <p><strong>ID:</strong> {{ selectedEntry.id }}</p>
+            <p><strong>Session:</strong> {{ formatDateTime(selectedSession.timestamp) }}</p>
+            <p><strong>Image ID:</strong> {{ selectedImage.id }}</p>
           </div>
           <div class="modal-actions">
             <button class="btn btn-success" @click="loadIntoEvolve">
@@ -80,17 +88,18 @@ export default {
   },
   data() {
     return {
-      entries: [],
-      stats: { count: 0, sizeKB: 0, percentFull: 0 },
-      selectedEntry: null
+      sessions: [],
+      stats: { sessionCount: 0, imageCount: 0, sizeKB: 0 },
+      selectedSession: null,
+      selectedImage: null
     }
   },
   mounted() {
-    this.loadEntries();
+    this.loadSessions();
   },
   methods: {
-    loadEntries() {
-      this.entries = historyStorage.getAll();
+    loadSessions() {
+      this.sessions = historyStorage.getAll();
       this.stats = historyStorage.getStats();
     },
     formatDate(timestamp) {
@@ -99,43 +108,51 @@ export default {
     formatDateTime(timestamp) {
       return new Date(timestamp).toLocaleString();
     },
-    selectEntry(entry) {
-      this.selectedEntry = entry;
+    selectImage(session, image) {
+      this.selectedSession = session;
+      this.selectedImage = image;
     },
     closeModal() {
-      this.selectedEntry = null;
+      this.selectedSession = null;
+      this.selectedImage = null;
     },
-    deleteEntry(id) {
-      if (confirm('Delete this saved image?')) {
-        historyStorage.delete(id);
-        this.loadEntries();
+    deleteSession(sessionId) {
+      if (confirm('Delete this entire mutation session?')) {
+        historyStorage.deleteSession(sessionId);
+        this.loadSessions();
+      }
+    },
+    deleteImage(sessionId, imageId) {
+      if (confirm('Delete this image?')) {
+        historyStorage.deleteImage(sessionId, imageId);
+        this.loadSessions();
       }
     },
     deleteAndClose() {
-      if (this.selectedEntry) {
-        historyStorage.delete(this.selectedEntry.id);
+      if (this.selectedImage && this.selectedSession) {
+        historyStorage.deleteImage(this.selectedSession.id, this.selectedImage.id);
         this.closeModal();
-        this.loadEntries();
+        this.loadSessions();
       }
     },
     confirmClearAll() {
       if (confirm('Delete ALL saved images? This cannot be undone.')) {
         historyStorage.clearAll();
-        this.loadEntries();
+        this.loadSessions();
       }
     },
     loadIntoEvolve() {
-      sessionStorage.setItem('picbreeder_load_genome', JSON.stringify(this.selectedEntry.genome));
+      sessionStorage.setItem('picbreeder_load_genome', JSON.stringify(this.selectedImage.genome));
       this.$router.push('/evolve');
     },
     downloadImage() {
       const link = document.createElement('a');
-      link.download = `picbreeder-${this.selectedEntry.id}.png`;
-      link.href = this.selectedEntry.thumbnail;
+      link.download = `picbreeder-${this.selectedImage.id}.png`;
+      link.href = this.selectedImage.thumbnail;
       link.click();
     },
     copyGenome() {
-      const genomeStr = JSON.stringify(this.selectedEntry.genome, null, 2);
+      const genomeStr = JSON.stringify(this.selectedImage.genome, null, 2);
       navigator.clipboard.writeText(genomeStr).then(() => {
         alert('Genome JSON copied to clipboard!');
       });
@@ -161,55 +178,95 @@ export default {
   margin: 15px 0;
 }
 
-.history-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-  gap: 10px;
+.sessions-list {
   margin-top: 20px;
 }
 
-.history-item {
+.session-card {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  margin-bottom: 15px;
+  overflow: hidden;
+}
+
+.session-header {
+  background: #f5f5f5;
+  padding: 10px 15px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  border-bottom: 1px solid #ddd;
+}
+
+.session-date {
+  font-weight: bold;
+}
+
+.session-count {
+  color: #666;
+  font-size: 14px;
+}
+
+.delete-session-btn {
+  margin-left: auto;
+  background: #dc3545;
+  color: white;
+  border: none;
+  padding: 4px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.delete-session-btn:hover {
+  background: #c82333;
+}
+
+.session-images {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 15px;
+}
+
+.session-image {
   position: relative;
   cursor: pointer;
   border: 2px solid transparent;
   transition: border-color 0.2s;
+  width: 90px;
+  height: 90px;
 }
 
-.history-item:hover {
+.session-image:hover {
   border-color: #42b983;
 }
 
-.history-item img {
+.session-image img {
   width: 100%;
+  height: 100%;
   display: block;
+  object-fit: cover;
 }
 
-.history-item-date {
-  font-size: 10px;
-  text-align: center;
-  padding: 2px;
-  background: rgba(0,0,0,0.7);
-  color: white;
-}
-
-.delete-btn {
+.delete-img-btn {
   position: absolute;
   top: 2px;
   right: 2px;
   background: rgba(255,0,0,0.7);
   color: white;
   border: none;
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   cursor: pointer;
-  font-size: 12px;
+  font-size: 11px;
   line-height: 1;
   opacity: 0;
   transition: opacity 0.2s;
 }
 
-.history-item:hover .delete-btn {
+.session-image:hover .delete-img-btn {
   opacity: 1;
 }
 

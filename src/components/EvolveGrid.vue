@@ -349,7 +349,8 @@ export default {
       var len = selectionList.length;
       if (len === 0) return;
 
-      // AUTO-SAVE: Save all selected parent genomes before mutation
+      // AUTO-SAVE: Save all selected parent genomes as a session before mutation
+      var sessionImages = [];
       for (var s = 0; s < len; s++) {
         var selectedIdx = selectionList[s];
         var selectedGenome = getThing(genome, selectedIdx);
@@ -357,8 +358,9 @@ export default {
         genomeCopy.roundWeights();
         var genomeJSON = genomeCopy.toJSON();
         var thumbnailURL = createThumbnailDataURL(genomeCopy, thumbSize);
-        historyStorage.save(genomeJSON, thumbnailURL);
+        sessionImages.push({ genome: genomeJSON, thumbnail: thumbnailURL });
       }
+      historyStorage.saveSession(sessionImages);
 
       var mom, dad;
       var momGene, dadGene;

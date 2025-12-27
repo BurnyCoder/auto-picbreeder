@@ -1,5 +1,5 @@
 const STORAGE_KEY = 'picbreeder_history';
-const MAX_ENTRIES = 150;
+const MAX_SESSIONS = 50;
 
 export const historyStorage = {
   generateId() {
@@ -16,44 +16,70 @@ export const historyStorage = {
     }
   },
 
-  getById(id) {
-    const entries = this.getAll();
-    return entries.find(entry => entry.id === id) || null;
+  getSessionById(sessionId) {
+    const sessions = this.getAll();
+    return sessions.find(session => session.id === sessionId) || null;
   },
 
-  save(genomeJSON, thumbnailDataURL) {
-    const entries = this.getAll();
+  getImageById(sessionId, imageId) {
+    const session = this.getSessionById(sessionId);
+    if (!session) return null;
+    return session.images.find(img => img.id === imageId) || null;
+  },
 
-    const newEntry = {
+  saveSession(images) {
+    // images is an array of { genome: genomeJSON, thumbnail: dataURL }
+    if (!images || images.length === 0) return null;
+
+    const sessions = this.getAll();
+
+    const newSession = {
       id: this.generateId(),
       timestamp: Date.now(),
-      thumbnail: thumbnailDataURL,
-      genome: genomeJSON
+      images: images.map(img => ({
+        id: this.generateId(),
+        thumbnail: img.thumbnail,
+        genome: img.genome
+      }))
     };
 
-    entries.unshift(newEntry);
+    sessions.unshift(newSession);
 
-    while (entries.length > MAX_ENTRIES) {
-      entries.pop();
+    while (sessions.length > MAX_SESSIONS) {
+      sessions.pop();
     }
 
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
-      return newEntry.id;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
+      return newSession.id;
     } catch (e) {
       console.error('Error saving to history:', e);
       if (e.name === 'QuotaExceededError') {
-        entries.splice(Math.floor(entries.length / 2));
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+        sessions.splice(Math.floor(sessions.length / 2));
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
       }
       return null;
     }
   },
 
-  delete(id) {
-    const entries = this.getAll();
-    const filtered = entries.filter(entry => entry.id !== id);
+  deleteSession(sessionId) {
+    const sessions = this.getAll();
+    const filtered = sessions.filter(session => session.id !== sessionId);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
+  },
+
+  deleteImage(sessionId, imageId) {
+    const sessions = this.getAll();
+    const session = sessions.find(s => s.id === sessionId);
+    if (session) {
+      session.images = session.images.filter(img => img.id !== imageId);
+      if (session.images.length === 0) {
+        const filtered = sessions.filter(s => s.id !== sessionId);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
+      } else {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
+      }
+    }
   },
 
   clearAll() {
@@ -61,10 +87,12 @@ export const historyStorage = {
   },
 
   getStats() {
-    const entries = this.getAll();
-    const dataSize = new Blob([JSON.stringify(entries)]).size;
+    const sessions = this.getAll();
+    const totalImages = sessions.reduce((sum, s) => sum + s.images.length, 0);
+    const dataSize = new Blob([JSON.stringify(sessions)]).size;
     return {
-      count: entries.length,
+      sessionCount: sessions.length,
+      imageCount: totalImages,
       sizeBytes: dataSize,
       sizeKB: Math.round(dataSize / 1024),
       percentFull: Math.round((dataSize / (5 * 1024 * 1024)) * 100)
