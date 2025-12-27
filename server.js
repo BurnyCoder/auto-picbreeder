@@ -18,7 +18,7 @@ app.use(express.json({ limit: '50mb' }));
 // Save image endpoint
 app.post('/api/save-image', (req, res) => {
   try {
-    const { sessionId, imageId, imageData } = req.body;
+    const { sessionId, imageId, imageData, genome } = req.body;
 
     if (!sessionId || !imageId || !imageData) {
       return res.status(400).json({ error: 'Missing required fields' });
@@ -35,11 +35,19 @@ app.post('/api/save-image', (req, res) => {
     const buffer = Buffer.from(base64Data, 'base64');
 
     // Save image
-    const filePath = path.join(sessionDir, `${imageId}.png`);
-    fs.writeFileSync(filePath, buffer);
+    const pngPath = path.join(sessionDir, `${imageId}.png`);
+    fs.writeFileSync(pngPath, buffer);
 
-    console.log(`Saved: ${filePath}`);
-    res.json({ success: true, path: filePath });
+    // Save genome JSON if provided
+    if (genome) {
+      const jsonPath = path.join(sessionDir, `${imageId}.json`);
+      fs.writeFileSync(jsonPath, JSON.stringify(genome, null, 2));
+      console.log(`Saved: ${pngPath} + ${jsonPath}`);
+    } else {
+      console.log(`Saved: ${pngPath}`);
+    }
+
+    res.json({ success: true, path: pngPath });
   } catch (error) {
     console.error('Error saving image:', error);
     res.status(500).json({ error: error.message });

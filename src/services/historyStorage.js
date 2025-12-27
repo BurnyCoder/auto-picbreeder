@@ -362,7 +362,8 @@ export const historyStorage = {
           body: JSON.stringify({
             sessionId,
             imageId: img.id,
-            imageData: img.thumbnail
+            imageData: img.thumbnail,
+            genome: img.genome
           })
         });
       }
