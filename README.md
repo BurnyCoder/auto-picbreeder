@@ -134,6 +134,7 @@ Picbreeder is based on an idea from Jimmy Secretan, originally proposed in a mee
 MIT
 
 ## Todo
+- save LLM picked imgs as well
 - when evolving, also show currently evolved images to the LLM
 - better memory for LLMs in sessions
 - give llm permission to stop evolving
