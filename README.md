@@ -134,11 +134,12 @@ Picbreeder is based on an idea from Jimmy Secretan, originally proposed in a mee
 MIT
 
 ## Todo
-- when evolving, also show currently evolved image to the LLM
-- memory for LLMs in sessions
+- when evolving, also show currently evolved images to the LLM
+- better memory for LLMs in sessions
 - give llm permission to stop evolving
 - save those autoselected by AI with a flag
 - menu where you race against ai and random selection
 - compare LLMs, humans, random selection images
 - write paper
 - rewrite backend in python
+- maybe there could be more specialized model that could be used instead of LLMs for automatic mutated image picking
